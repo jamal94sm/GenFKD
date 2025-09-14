@@ -1,6 +1,6 @@
 from diffusers import StableDiffusionPipeline
 import torch
-import clip
+from transformers import CLIPProcessor, CLIPModel
 from PIL import Image
 import os
 import json
@@ -19,9 +19,10 @@ if device == "cpu":
     pipe.enable_attention_slicing()
 
 # -------------------------------
-# Load CLIP model
+# Load Hugging Face CLIP model
 # -------------------------------
-model, preprocess = clip.load("ViT-B/32", device=device)
+clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 # -------------------------------
 # CIFAR-10 class names
@@ -39,13 +40,13 @@ with open(json_path, "r") as f:
     descriptions = json.load(f)
 
 # -------------------------------
-# Reference text embeddings for CLIP
+# Prepare reference text embeddings
 # -------------------------------
 cls_template_prompts = [f"a photo of a {cls}" for cls in cifar_classes]
-text_tokens = clip.tokenize(cls_template_prompts).to(device)
 
 with torch.no_grad():
-    text_features = model.encode_text(text_tokens)
+    text_inputs = clip_processor(text=cls_template_prompts, return_tensors="pt", padding=True).to(device)
+    text_features = clip_model.get_text_features(**text_inputs)
     text_features /= text_features.norm(dim=-1, keepdim=True)
 
 # -------------------------------
@@ -57,68 +58,55 @@ os.makedirs(output_path, exist_ok=True)
 # -------------------------------
 # Generate + Infer + Save function
 # -------------------------------
-def generate_and_infer(prompts_dict, expected_class, thresh=0.95):
+def generate_and_infer(prompts_list, expected_class, thresh=0.95):
     results = []
     failed_descriptions = []
     failed_prompts = {}
 
-    for idx, p in enumerate(prompts_dict):
+    for idx, prompt in enumerate(prompts_list):
         # Generate image
         generator = torch.manual_seed(42 + idx)
         image = pipe(
-            p, guidance_scale=7.5, num_inference_steps=20, generator=generator
+            prompt, guidance_scale=7.5, num_inference_steps=20, generator=generator
         ).images[0]
 
         # CLIP inference
-        image_input = preprocess(image).unsqueeze(0).to(device)
+        inputs = clip_processor(images=image, return_tensors="pt").to(device)
         with torch.no_grad():
-            image_features = model.encode_image(image_input)
+            image_features = clip_model.get_image_features(**inputs)
             image_features /= image_features.norm(dim=-1, keepdim=True)
-            logits_per_image = 100.0 * image_features @ text_features.T
-            probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
+            logits_per_image = image_features @ text_features.T
+            probs = torch.softmax(logits_per_image, dim=-1).cpu().numpy()[0]
 
-        # Determine top-1 prediction
         top_class = cifar_classes[probs.argmax()]
         top_conf = float(probs.max())
-
-        # Check alignment and confidence
         aligned = (top_class == expected_class)
         high_conf = (top_conf >= thresh)
 
         if aligned and high_conf:
-            # Save image
             class_folder = os.path.join(output_path, expected_class)
             os.makedirs(class_folder, exist_ok=True)
             img_path = os.path.join(class_folder, f"{expected_class}_{idx}.png")
             image.save(img_path)
             status = f"✅ Aligned & confident (confidence {top_conf:.2f}) - Saved to {img_path}"
         else:
-            # Determine reason
-            if not aligned:
-                reason = "not aligned"
-            elif not high_conf:
-                reason = f"low confidence {top_conf:.2f}"
-            else:
-                reason = "unknown"
-
-            status = (
-                f"❌ Failed. Reason: {reason}. Prompt: {p} -> Predicted '{top_class}'"
-            )
+            reason = "not aligned" if not aligned else f"low confidence {top_conf:.2f}"
+            status = f"❌ Failed. Reason: {reason}. Prompt: {prompt} -> Predicted '{top_class}'"
             failed_descriptions.append({
                 "idx": idx,
-                "prompt": p,
+                "prompt": prompt,
                 "expected_class": expected_class,
                 "predicted_class": top_class,
                 "confidence": top_conf,
                 "soft_labels": {cls: float(pr) for cls, pr in zip(cifar_classes, probs)},
                 "status": status
             })
-            failed_prompts[idx] = p
+            failed_prompts[idx] = prompt
 
         print(f"{idx} - {status}")
         results.append({
             "idx": idx,
-            "prompt": p,
+            "prompt": prompt,
             "expected_class": expected_class,
             "predicted_class": top_class,
             "confidence": top_conf,
