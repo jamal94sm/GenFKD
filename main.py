@@ -167,15 +167,6 @@ if __name__ == "__main__":
         clean_memory(FM, processor, tokenizer)
         
 
-
-
-
-
-
-
-
-    
-    
     
     # ===================== Data Loading and Plot =====================
     results_dir = "results"  # Directory containing your JSON files    
