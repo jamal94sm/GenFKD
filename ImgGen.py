@@ -70,14 +70,20 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             prompt, guidance_scale=7.5, num_inference_steps=20, generator=generator
         ).images[0]
 
-        # CLIP inference
-        inputs = clip_processor(images=image, return_tensors="pt").to(device)
-        with torch.no_grad():
-            image_features = clip_model.get_image_features(**inputs)
-            image_features /= image_features.norm(dim=-1, keepdim=True)
-            logits_per_image = image_features @ text_features.T
-            probs = torch.softmax(logits_per_image, dim=-1).cpu().numpy()[0]
+        # CLIP inference (use forward pass with both image + text for proper scaling)
+        inputs = clip_processor(
+            text=cls_template_prompts,
+            images=image,
+            return_tensors="pt",
+            padding=True
+        ).to(device)
 
+        with torch.no_grad():
+            outputs = clip_model(**inputs)
+            logits_per_image = outputs.logits_per_image  # [1, num_classes]
+            probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
+
+        # Get top-1 prediction
         top_class = cifar_classes[probs.argmax()]
         top_conf = float(probs.max())
         aligned = (top_class == expected_class)
@@ -115,6 +121,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
         })
 
     return results, failed_descriptions, failed_prompts
+
 
 # -------------------------------
 # Run generation for all classes
