@@ -1,22 +1,12 @@
-# -*- coding: utf-8 -*-
-"""
-Data_Generation_LLM_Diffuser_CLIP_20250913.ipynb
-
-pip install git+https://github.com/openai/CLIP.git 
-
-"""
-
-
 from diffusers import StableDiffusionPipeline
 import torch
 import clip
 from PIL import Image
-import matplotlib.pyplot as plt
 import os
-
+import json
 
 # -------------------------------
-# Load Stable Diffusion (CPU or GPU)
+# Load Stable Diffusion
 # -------------------------------
 model_id = "CompVis/stable-diffusion-v1-4"
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,7 +23,6 @@ if device == "cpu":
 # -------------------------------
 model, preprocess = clip.load("ViT-B/32", device=device)
 
-
 # -------------------------------
 # CIFAR-10 class names
 # -------------------------------
@@ -43,49 +32,21 @@ cifar_classes = [
 ]
 
 # -------------------------------
-# prompts dictionary
+# Load JSON descriptions
 # -------------------------------
-descriptions = {
-    11: "A photo of a red sedan automobile with doors, windows, and rear trunk fully visible.",
-    13: "A close-up of a blue sports car showing headlights, shiny grille, and sleek side mirrors.",
-    21: "A centered image of a black SUV automobile showing headlights, front grille, and cabin clearly.",
-    30: "A detailed photo of a silver coupe automobile with round headlights, tires, and smooth body visible.",
-    36: "A clear photo of a white hatchback automobile with smooth hood, bumper, and side panels visible.",
-    41: "A photo of a small green compact car with all four tires, doors, and windows visible.",
-    53: "A centered image of a yellow sedan automobile showing tires, doors, and headlights clearly.",
-    56: "A crisp capture of a gray sports car automobile showing headlights, tires, and roofline.",
-    59: "A clear photo of a red convertible car with headlights, grille, and tires fully visible.",
-    73: "A detailed image of a blue sedan automobile showing headlights, front bumper, and aerodynamic body.",
-    75: "A crisp photo of a black hatchback car showing tires, rear trunk, and headlights.",
-    80: "A wide capture of a silver SUV automobile with roof, hood, and front bumper visible.",
-    81: "A crisp image of a white sedan car showing full cabin, doors, and windows.",
-    88: "A crisp photo of a red coupe automobile with trunk, doors, and roof clearly visible.",
-    91: "A bright photo of a green sedan automobile showing full side, roof, and trunk panels.",
-    93: "A wide photo of a gray hatchback car showing tires, doors, and roofline clearly.",
-    94: "A crisp centered image of a black sports car showing headlights, grille, and hood.",
-    96: "A bright shot of a blue sedan automobile with doors, tires, and headlights fully visible.",
-    102: "A centered photo of a silver SUV automobile showing tires, doors, and roof fully visible.",
-    104: "A detailed shot of a white sedan automobile with doors, trunk, and front bumper visible.",
-    114: "A centered photo of a red hatchback car showing headlights, doors, and tires clearly."
-}
-
-prompts = {k: v for k, v in list(descriptions.items())[:]}
+json_path = "cifar10_descriptions.json"  # update path if needed
+with open(json_path, "r") as f:
+    descriptions = json.load(f)
 
 # -------------------------------
 # Reference text embeddings for CLIP
 # -------------------------------
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Use simple template: "a photo of a {cls}" for text reference
 cls_template_prompts = [f"a photo of a {cls}" for cls in cifar_classes]
-
-# Tokenize template prompts
 text_tokens = clip.tokenize(cls_template_prompts).to(device)
 
-# Encode CLIP text embeddings
 with torch.no_grad():
     text_features = model.encode_text(text_tokens)
-    text_features /= text_features.norm(dim=-1, keepdim=True)  # normalize
+    text_features /= text_features.norm(dim=-1, keepdim=True)
 
 # -------------------------------
 # Output path
@@ -94,14 +55,14 @@ output_path = "Synthetic_Image/"
 os.makedirs(output_path, exist_ok=True)
 
 # -------------------------------
-# Generate + Infer + Save
+# Generate + Infer + Save function
 # -------------------------------
-def generate_and_infer(prompts_dict, expected_class, thresh=0.9):
+def generate_and_infer(prompts_dict, expected_class, thresh=0.95):
     results = []
     failed_descriptions = []
     failed_prompts = {}
 
-    for idx, p in prompts_dict.items():  # <-- use dict keys as idx
+    for idx, p in enumerate(prompts_dict):
         # Generate image
         generator = torch.manual_seed(42 + idx)
         image = pipe(
@@ -141,10 +102,8 @@ def generate_and_infer(prompts_dict, expected_class, thresh=0.9):
                 reason = "unknown"
 
             status = (
-                f"❌ Failed. Reason: {reason}. "
-                f"Prompt: {p} -> Predicted '{top_class}'"
+                f"❌ Failed. Reason: {reason}. Prompt: {p} -> Predicted '{top_class}'"
             )
-
             failed_descriptions.append({
                 "idx": idx,
                 "prompt": p,
@@ -154,12 +113,9 @@ def generate_and_infer(prompts_dict, expected_class, thresh=0.9):
                 "soft_labels": {cls: float(pr) for cls, pr in zip(cifar_classes, probs)},
                 "status": status
             })
-
-            # Add to failed_prompts dict
             failed_prompts[idx] = p
 
         print(f"{idx} - {status}")
-
         results.append({
             "idx": idx,
             "prompt": p,
@@ -172,17 +128,19 @@ def generate_and_infer(prompts_dict, expected_class, thresh=0.9):
 
     return results, failed_descriptions, failed_prompts
 
-
 # -------------------------------
-# Run
+# Run generation for all classes
 # -------------------------------
-results, failed, failed_prompts = generate_and_infer(prompts, expected_class="automobile", thresh=0.95)
+all_results = {}
+all_failed = {}
+all_failed_prompts = {}
 
-print("\nFailed Descriptions:")
-for f in failed:
-    print(f"- {f['idx']} -> {f['status']} and soft label is: {f['soft_labels']}")
+for cls in cifar_classes:
+    print(f"\n--- Generating images for class: {cls} ---")
+    prompts_list = descriptions[cls]
+    results, failed, failed_prompts = generate_and_infer(prompts_list, expected_class=cls, thresh=0.95)
+    all_results[cls] = results
+    all_failed[cls] = failed
+    all_failed_prompts[cls] = failed_prompts
 
-print("\nFailed Prompts Dict:")
-print(failed_prompts)
-
-
+print("\nAll generation completed.")
