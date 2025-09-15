@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=def-arashmoh
 #SBATCH --nodes=1
-#SBATCH --gpus=v100:1  # Graham: t4 or v100 or a100 or dgx or a5000 or h100; Narval: a100, a100_4g.20g; Cedar: p100, p100l, v100l, a40
+#SBATCH --gpus=t4:1  # Graham: t4 or v100 or a100 or dgx or a5000 or h100; Narval: a100, a100_4g.20g; Cedar: p100, p100l, v100l, a40
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4 # 8, 16
 #SBATCH --mem=32G               # memory per node (ex: 16G) you can get more 
