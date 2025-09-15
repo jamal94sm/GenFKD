@@ -60,7 +60,7 @@ def main():
     print(f'Device: {device}')
     
     # ===================== Build public dataset =====================
-    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_data/CIFAR10" ) 
+    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_Image" ) 
 
 
     #id = args.num_clients-1
@@ -228,14 +228,6 @@ if __name__ == "__main__":
         clean_memory(FM, processor, tokenizer)
         
 
-
-
-
-
-
-
-
-    
     
     
     # ===================== Data Loading and Plot =====================
