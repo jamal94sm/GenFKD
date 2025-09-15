@@ -10,9 +10,9 @@
 #SBATCH --mail-type=ALL
 
 
-cd /home/shahab33/projects/def-arashmoh/shahab33/GenFKD #Cedar
+#cd /home/shahab33/projects/def-arashmoh/shahab33/GenFKD #Cedar
 
-#cd /project/def-arashmoh/shahab33/Rohollah/projects/FeD2P #Graham
+cd /project/def-arashmoh/shahab33/Rohollah/projects/FeD2P #Graham
 
 #cd /project/def-arashmoh/shahab33/GenFKD #Narval 
 
@@ -22,9 +22,9 @@ module load python
 module load cuda
 
 
-source /home/shahab33/FeDK2P/bin/activate  	# Cedar
+#source /home/shahab33/FeDK2P/bin/activate  	# Cedar
 
-#source /home/shahab33/fed2p/bin/activate #Graham
+source /home/shahab33/fed2p/bin/activate #Graham
 
 #source /home/shahab33/fed2p/bin/activate #Narval
 
