@@ -305,7 +305,7 @@ def adjust_temperature_orginal(inputs, iteration, optimal_temperature, is_softma
         probabilities = torch.nn.functional.softmax(inputs / optimal_temperature, dim=1)
     return probabilities, optimal_temperature
 ############################################################################################################## 
-def plot(arrays, names=[""], title='Comparison of Arrays', xlabel='rounds', ylabel='accuracy %', file_name="figure_" + args.output_name):
+def plot(arrays, names=[""], title='Comparison of Arrays', xlabel='rounds', ylabel='accuracy %', file_name="figure"):
     # Convert to numpy array with dtype=object to handle inhomogeneous sequences
     arrays = np.array(arrays, dtype=object)
 
@@ -329,11 +329,6 @@ def plot(arrays, names=[""], title='Comparison of Arrays', xlabel='rounds', ylab
     plt.tight_layout()
     plt.savefig(f"plots/{file_name}.png")
     plt.show()
-
-    
-    
-
-
     
 ##############################################################################################################
 def FSL_data_preparing(samples, labels, num_shots): #Few-Shot Learning data preparing
@@ -350,6 +345,7 @@ def FSL_data_preparing(samples, labels, num_shots): #Few-Shot Learning data prep
             new_labels.append(cls)
     return  torch.tensor(new_samples),  torch.tensor(new_labels)
 ##############################################################################################################
+
 def play_alert_sound():
     system = platform.system()
     if system == "Windows":
@@ -362,6 +358,7 @@ def play_alert_sound():
     else:  # Linux and others
         print('\a')  # ASCII Bell character
 ##############################################################################################################
+
 def save_as_json(to_save, config, file_name="", output_dir="results"):
     
     if isinstance(to_save, np.ndarray):
@@ -395,7 +392,7 @@ def Model_Size(model):
 
 ##############################################################################################################
 def extend_proto_outputs_to_labels(input_data, proto_outputs):
-    num_data = input_data["train"]["image"].shape[0]
+    num_data = input_data["train"]["ige"].shape[0]
     num_classes = len(  sorted(set(input_data["train"]["label"].tolist()))  )
     labels = input_data["train"]["label"]
     extended_outputs = torch.zeros(num_data, num_classes)
@@ -419,8 +416,38 @@ def run_in_parallel(clients):
 
 
 ##############################################################################################################
+##############################################################################################################
 
+from datasets import Dataset, DatasetDict
+from PIL import Image
+import os
 
+def load_synthetic_images(class_names, data_dir):
+    images = []
+    labels = []
 
+    for filename in os.listdir(data_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            for class_name in class_names:
+                if filename.startswith(class_name):
+                    label = class_names.index(class_name)
+                    image_path = os.path.join(data_dir, filename)
+                    image = Image.open(image_path).convert("RGB")
+                    images.append(image)
+                    labels.append(label)
+                    break
+
+    train_dataset = Dataset.from_dict({
+        "image": images,
+        "label": labels
+    })
+
+    return DatasetDict({
+        "train": train_dataset,
+        "test": None
+    })
+
+##############################################################################################################
+##############################################################################################################
 
 
