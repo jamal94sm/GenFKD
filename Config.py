@@ -15,7 +15,7 @@ def get_args():
     parser.add_argument('--setup', default="local")
     parser.add_argument('--output_name', type=str, default='A')
     parser.add_argument('--num_clients', type=int, default= 10 + 1)
-    parser.add_argument('--local_model_name', type=str, default="EfficientNet")
+    parser.add_argument('--local_model_name', type=str, default="ResNet18")
     parser.add_argument('--num_train_samples', type=int, default=50000)
     parser.add_argument('--num_test_samples', type=int, default=3000)
     parser.add_argument('--dataset', type=str, default="cifar10")
