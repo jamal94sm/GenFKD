@@ -60,9 +60,13 @@ def main():
     print(f'Device: {device}')
     
     # ===================== Build public dataset =====================
-    id = args.num_clients-1
-    last_client = MyPlayers.Device(id, distributed_dataset[id], num_classes, name_classes , None)
-    public_data = last_client.data
+    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_data/CIFAR10" ) 
+
+
+    #id = args.num_clients-1
+    #last_client = MyPlayers.Device(id, distributed_dataset[id], num_classes, name_classes , None)
+    #public_data = last_client.data
+
 
     # ===================== Client and Server Setup =====================
     clients = [ MyPlayers.Device( id, distributed_dataset[id], num_classes, name_classes, public_data ) for id in range(args.num_clients-1) ]
@@ -102,22 +106,75 @@ def main():
 
 
 
-    for round_idx in range(args.rounds):
-        print("=" * 20, f" Round {round_idx + 1}/{args.rounds} ", "=" * 20)
-        
-        for client in clients:
-            client.local_training()
-            if round_idx > 0 : 
-                client.local_distillation(general_knowledge, prototype=True)
-            client.cal_proto_logits()
 
-        agg = server.aggregation()
+
+    # ==================================================================
+    # ===================== Perfomig the main loop =====================
+    # ==================================================================
+    for round in range(args.rounds):
+        print("=" * 20, f" Round {round + 1}/{args.rounds} ", "=" * 20)
         
-        if "ft" in args.setup:
+
+        if 'local' in args.setup:
+            for client in clients:
+                client.local_merge_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+            continue
+        #==================================================================
+        elif 'fedavg' in args.setup:
+            for client in clients:
+                client.local_merge_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+            server.fedavg_aggregation_and_implanting()
+            continue
+        #==================================================================
+        elif 'fedmd' in args.setup:
+            for client in clients:
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                if round > 0 :  
+                    client.local_distillation(
+                        client.public_data,
+                        agg, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                client.cal_logits( 
+                    client.public_data,
+                    proto = True if "proto" in args.setup else False,
+                    sifting = True if "sift" in args.setup else False,
+                    )
+            agg = server.aggregation()
+            continue
+        #==================================================================
+        elif "proposed" in args.setup:
+            for client in clients:
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                if round > 0 :  
+                    client.local_distillation(
+                        client.public_data,
+                        general_knowledge, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                client.cal_logits( 
+                    client.public_data,
+                    proto = True if "proto" in args.setup else False,
+                    sifting = True if "sift" in args.setup else False,
+                    )
+            agg = server.aggregation()
             print("-" * 20, "Server Distillation Phase")
-
-            server.distill_generator(agg)
+            server.distill_generator(server.public_data, agg)
             general_knowledge = server.get_general_knowledge()
+            continue
+        #==================================================================
+
+
+
+
+
+
+
+
 
 
 
@@ -147,8 +204,12 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        {"setup": "ft_M_yn"},
+        {"setup": "local"},
+        {"setup": "fedavg"},
+        {"setup": "fedmd_yn"},
+        {"setup": "proposed_yn"}
     ]
+
 
     for config in configurations:
 
@@ -167,6 +228,15 @@ if __name__ == "__main__":
         clean_memory(FM, processor, tokenizer)
         
 
+
+
+
+
+
+
+
+    
+    
     
     # ===================== Data Loading and Plot =====================
     results_dir = "results"  # Directory containing your JSON files    
