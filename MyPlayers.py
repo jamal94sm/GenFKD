@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Config import args
 from torch.utils.data import DataLoader, TensorDataset
+from datasets import DatasetDict, concatenate_datasets
 
 
 
@@ -23,9 +24,23 @@ class Server():
         
     def aggregation(self):
         coeficients = 1 / torch.stack([client.num_samples for client in self.clients]).sum(dim=0) 
-        summ = torch.stack([client.proto_logits * client.num_samples for client in self.clients]).sum(dim=0)
-        self.ave_proto_logits = summ * coeficients 
-        return self.ave_proto_logits
+        summ = torch.stack([client.logits * client.num_samples for client in self.clients]).sum(dim=0)
+        self.ave_logits = summ * coeficients 
+        return self.ave_logits
+
+    def fedavg_aggregation_and_implanting(self):
+        Models = [client.model for client in self.clients]
+        global_dict = Models[0].state_dict()
+        for key in global_dict:
+            global_dict[key] = torch.zeros_like(global_dict[key])
+        for model in Models:
+            local_dict = model.state_dict()
+            for key in global_dict:
+                global_dict[key] += local_dict[key]
+        for key in global_dict:
+            global_dict[key] = global_dict[key] / len(Models)
+        for client in self.clients:
+            client.model.load_state_dict(global_dict)
 
     def get_general_knowledge(self):
         with torch.no_grad():
@@ -52,20 +67,18 @@ class Server():
         )
         self.Loss += loss
         
-    def distill_generator(self, logits):
+    def distill_generator(self, data, logits):
         teacher_knowledge = logits
         
-
-
-        data_for_extension = { "train": {"image": self.public_data["train"]["image"], "label": self.public_data["train"]["label"] } }
+        data_for_extension = { "train": {"image": data["train"]["image"], "label": data["train"]["label"] } }
         teacher_knowledge = MyUtils.extend_proto_outputs_to_labels(data_for_extension, teacher_knowledge)
         
         extended_data = MyDatasets.ddf({
-            "student_model_input": self.public_data["train"]["image"],
-            "student_model_output": self.public_data["train"]["label"],
+            "student_model_input":  data["train"]["image"],
+            "student_model_output": data["train"]["label"],
             "teacher_knowledge": teacher_knowledge
         })
-    
+
         loss, _, _ = MyUtils.Distil(
             model = self.model,
             extended_data = extended_data,
@@ -78,8 +91,6 @@ class Server():
             device = args.device,
             debug = args.debug
         )
-
-
         self.Loss += loss
 
     def zero_shot(self, data, FM, processor, tokenizer, prototype=False, batch_size=16):
@@ -139,12 +150,13 @@ class Device():
     def __init__(self, ID, data, num_classes, name_classes, public_data):
         self.ID = ID
         self.data = data
+
         self.num_classes = num_classes
         self.name_classes = name_classes
         self.num_samples = torch.bincount(self.data["train"]["label"], minlength=num_classes).to(args.device)
         self.public_data = public_data
 
-
+        
         if args.local_model_name=="MLP": #MLP
             self.model = MyModels.MLP(data["train"]["image"].view(data["train"]["image"].size(0), -1).size(1), self.num_classes).to(args.device)
         elif args.local_model_name=="ResNet": 
@@ -177,55 +189,29 @@ class Device():
         self.Loss += a
         self.Acc += b
         self.test_Acc += c
-        print(self.ID, b[-1], c[-1])
 
-    def local_distillation(self, teacher_knowledge, prototype=True):
-        if prototype:
-            teacher_knowledge = MyUtils.extend_proto_outputs_to_labels(self.data, teacher_knowledge)
-        extended_data = MyDatasets.ddf({"student_model_input": self.data["train"]["image"], 
-                                        "student_model_output":self.data["train"]["label"], 
+
+    def local_distillation(self, data, teacher_knowledge, proto=False):
+        if proto:
+            teacher_knowledge = MyUtils.extend_proto_outputs_to_labels(data, teacher_knowledge)
+
+        extended_data = MyDatasets.ddf({"student_model_input": data["train"]["image"], 
+                                        "student_model_output": data["train"]["label"], 
                                         "teacher_knowledge": teacher_knowledge}
                                       )
-        a, b, c = MyUtils.Distil(self.model, extended_data, self.data, self.optimizer, self.scheduler, self.loss_fn,
+        a, b, c = MyUtils.Distil(self.model, extended_data, data, self.optimizer, self.scheduler, self.loss_fn,
                                  args.local_batch_size, args.local_epochs, args.device, args.debug)
         self.Loss += a
         self.Acc += b
         self.test_Acc += c
-        print("====>",self.ID, b[-1], c[-1])
-
-    def cal_proto_logits_orginal(self, batch_size=32):
-        logits = self.model(self.data["train"]["image"].to(args.device))
-        labels = self.data["train"]["label"].to(args.device)
-
-  
-        if "sift" in args.setup:
-            print(30*'here')
-            predicted = torch.argmax(logits, dim=1)
-            correct_mask = (predicted == labels)
-            missing_classes = torch.tensor([cls.item() for cls in labels.unique() if cls not in labels[correct_mask].unique()]).to(args.device)
-            missing_class_mask = torch.isin(labels, missing_classes)
-            final_mask = correct_mask | missing_class_mask
-            logits = logits[final_mask]
-            labels = labels[final_mask]
 
 
-
-        unique_classes = sorted(set(labels.tolist()))        
-        num_classes = len(unique_classes)
-
-        self.proto_logits = torch.empty((num_classes, num_classes), device=logits.device)
-        
-        for c in unique_classes:
-            mask = labels  == c
-            category_logits = logits[mask].mean(dim=0)
-            self.proto_logits[c] = category_logits
-
-    def cal_proto_logits(self, batch_size=64):
-        images = self.data["train"]["image"]
-        labels = self.data["train"]["label"]
+    def cal_logits(self, data, proto=False, sifting=False):
+        images = data["train"]["image"]
+        labels = data["train"]["label"]
 
         dataset = TensorDataset(images, labels)
-        loader = DataLoader(dataset, batch_size=batch_size)
+        loader = DataLoader(dataset, batch_size=64)
 
         all_logits = []
         all_labels = []
@@ -245,7 +231,7 @@ class Device():
         unique_classes = sorted(set(labels.tolist()))
         num_classes = len(unique_classes)
 
-        if "sift" in args.setup:
+        if sifting:
             predicted = torch.argmax(logits, dim=1)
             correct_mask = (predicted == labels)
             missing_classes = torch.tensor(
@@ -256,15 +242,27 @@ class Device():
             logits = logits[final_mask]
             labels = labels[final_mask]
 
-
-
-        self.proto_logits = torch.empty((num_classes, num_classes), device=logits.device)
-
+        if not proto: 
+            self.logits = logits
+        else:
+            self.logits = torch.empty((num_classes, num_classes), device=logits.device)
+            for c in unique_classes:
+                mask = labels == c
+                category_logits = logits[mask].mean(dim=0)
+                self.logits[c] = category_logits
         
-        for c in unique_classes:
-            mask = labels == c
-            category_logits = logits[mask].mean(dim=0)
-            self.proto_logits[c] = category_logits
+    def local_merge_training(self):
+        merged = DatasetDict({
+            "train": concatenate_datasets([self.data["train"], self.public_data["train"]]),
+            "test": self.data["test"]  # Only ds1 has a test split
+        })
+
+        a,b, c = MyUtils.Train(self.model, merged, self.optimizer, self.scheduler, self.loss_fn,
+                               args.local_batch_size, args.local_epochs, args.device, args.debug)
+        self.Loss += a
+        self.Acc += b
+        self.test_Acc += c
+
 
 
 ##############################################################################################################
