@@ -52,7 +52,7 @@ with torch.no_grad():
 # -------------------------------
 # Output path
 # -------------------------------
-output_path = "Synthetic_Image/"
+output_path = "Synthetic_Image/CIFAR10/"
 os.makedirs(output_path, exist_ok=True)
 
 # -------------------------------
@@ -62,6 +62,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
     results = []
     failed_descriptions = []
     failed_prompts = {}
+    saved_count = 0  # track saved images
 
     for idx, prompt in enumerate(prompts_list):
         # Generate image
@@ -70,7 +71,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             prompt, guidance_scale=7.5, num_inference_steps=20, generator=generator
         ).images[0]
 
-        # CLIP inference (use forward pass with both image + text for proper scaling)
+        # CLIP inference
         inputs = clip_processor(
             text=cls_template_prompts,
             images=image,
@@ -94,6 +95,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             os.makedirs(class_folder, exist_ok=True)
             img_path = os.path.join(class_folder, f"{expected_class}_{idx}.png")
             image.save(img_path)
+            saved_count += 1
             status = f"✅ Aligned & confident (confidence {top_conf:.2f}) - Saved to {img_path}"
         else:
             reason = "not aligned" if not aligned else f"low confidence {top_conf:.2f}"
@@ -120,7 +122,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             "status": status
         })
 
-    return results, failed_descriptions, failed_prompts
+    return results, failed_descriptions, failed_prompts, saved_count
 
 
 # -------------------------------
@@ -129,13 +131,21 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
 all_results = {}
 all_failed = {}
 all_failed_prompts = {}
+saved_summary = {}
 
 for cls in cifar_classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
-    results, failed, failed_prompts = generate_and_infer(prompts_list, expected_class=cls, thresh=0.95)
+    results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=0.95)
     all_results[cls] = results
     all_failed[cls] = failed
     all_failed_prompts[cls] = failed_prompts
+    saved_summary[cls] = saved_count
 
-print("\nAll generation completed.")
+# -------------------------------
+# Print final saved image counts
+# -------------------------------
+print("\nImage generation completed.\n")
+print("Summary of saved images per class:")
+for cls, count in saved_summary.items():
+    print(f"- {cls}: {count} images saved")
