@@ -2,7 +2,7 @@ from datasets import Dataset, DatasetDict
 from PIL import Image
 import os
 
-def load_synthetic_images(class_names, data_dir):
+def load_synthetic_images(class_names, data_dir, max_per_class=10):
     images = []
     labels = []
 
@@ -12,19 +12,23 @@ def load_synthetic_images(class_names, data_dir):
             print(f"⚠️ Warning: Directory not found for class {class_name}")
             continue
 
+        count = 0
         for filename in os.listdir(class_dir):
             if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
                 image_path = os.path.join(class_dir, filename)
                 image = Image.open(image_path).convert("RGB")
                 images.append(image)
                 labels.append(label)
+                count += 1
+                if count >= max_per_class:  # stop after 10 images
+                    break
 
     train_dataset = Dataset.from_dict({
         "image": images,
         "label": labels
     })
 
-    print(f"✅ Loaded dataset with {len(images)} images across {len(class_names)} classes.")
+    print(f"✅ Loaded dataset with {len(images)} images ({max_per_class} per class × {len(class_names)} classes).")
 
     return DatasetDict({
         "train": train_dataset,
@@ -49,8 +53,10 @@ name_classes = [
 # Path to your dataset
 public_data = load_synthetic_images(
     name_classes,
-    data_dir="/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
+    data_dir="/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10",
+    max_per_class=5
 )
+
 
 
 
