@@ -392,7 +392,7 @@ def Model_Size(model):
 
 ##############################################################################################################
 def extend_proto_outputs_to_labels(input_data, proto_outputs):
-    num_data = input_data["train"]["ige"].shape[0]
+    num_data = input_data["train"]["image"].shape[0]
     num_classes = len(  sorted(set(input_data["train"]["label"].tolist()))  )
     labels = input_data["train"]["label"]
     extended_outputs = torch.zeros(num_data, num_classes)
@@ -417,7 +417,6 @@ def run_in_parallel(clients):
 
 ##############################################################################################################
 ##############################################################################################################
-
 import os
 from PIL import Image
 import torchvision.transforms as transforms
@@ -464,7 +463,6 @@ def load_synthetic_images(class_names, data_dir):
         "train": train_dataset,
         "test": None
     })
-
 
 ##############################################################################################################
 ##############################################################################################################
