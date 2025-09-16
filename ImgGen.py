@@ -1,3 +1,6 @@
+
+
+'''
 from diffusers import StableDiffusionPipeline
 import torch
 from transformers import CLIPProcessor, CLIPModel
@@ -149,3 +152,4 @@ print("\nImage generation completed.\n")
 print("Summary of saved images per class:")
 for cls, count in saved_summary.items():
     print(f"- {cls}: {count} images saved")
+'''
