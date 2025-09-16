@@ -1,4 +1,35 @@
+from datasets import Dataset, DatasetDict
+from PIL import Image
+import os
 
+def load_synthetic_images(class_names, data_dir):
+    images = []
+    labels = []
+
+    for filename in os.listdir(data_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            for class_name in class_names:
+                if filename.startswith(class_name):
+                    label = class_names.index(class_name)
+                    image_path = os.path.join(data_dir, filename)
+                    image = Image.open(image_path).convert("RGB")
+                    images.append(image)
+                    labels.append(label)
+                    break
+
+    train_dataset = Dataset.from_dict({
+        "image": images,
+        "label": labels
+    })
+
+    return DatasetDict({
+        "train": train_dataset,
+        "test": None
+    })
+
+
+
+data = load_synthetic_images(class_names, data_dir)
 
 '''
 from diffusers import StableDiffusionPipeline
