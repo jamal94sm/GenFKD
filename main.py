@@ -60,7 +60,7 @@ def main():
     print(f'Device: {device}')
     
     # ===================== Build public dataset =====================
-    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_Image/CIFAR10" ) 
+    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10" ) 
 
 
     #id = args.num_clients-1
