@@ -211,11 +211,15 @@ class Device():
         images = data["train"]["image"]
         labels = data["train"]["label"]
     
-        # Ensure tensors
-        if isinstance(images, list):
-            images = torch.stack(images)   # Now works since they’re tensors
-        if isinstance(labels, list):
-            labels = torch.tensor(labels, dtype=torch.long)
+        # Convert all elements to tensors if they are lists
+        images = [img if isinstance(img, torch.Tensor) else torch.tensor(img) for img in images]
+        labels = [lbl if isinstance(lbl, torch.Tensor) else torch.tensor(lbl) for lbl in labels]
+    
+        # Now stack safely
+        images = torch.stack(images)
+        labels = torch.tensor(labels)
+    
+        print(f"Images tensor shape: {images.shape}, Labels tensor shape: {labels.shape}")
     
         dataset = TensorDataset(images, labels)
         loader = DataLoader(dataset, batch_size=64)
@@ -249,7 +253,7 @@ class Device():
             logits = logits[final_mask]
             labels = labels[final_mask]
     
-        if not proto:
+        if not proto: 
             self.logits = logits
         else:
             self.logits = torch.empty((num_classes, num_classes), device=logits.device)
@@ -257,6 +261,7 @@ class Device():
                 mask = labels == c
                 category_logits = logits[mask].mean(dim=0)
                 self.logits[c] = category_logits
+
 
     
         
