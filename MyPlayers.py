@@ -211,6 +211,8 @@ class Device():
         images = data["train"]["image"]
         labels = data["train"]["label"]
 
+        dataset = TensorDataset(images, labels)
+        loader = DataLoader(dataset, batch_size=64)
 
         all_logits = []
         all_labels = []
