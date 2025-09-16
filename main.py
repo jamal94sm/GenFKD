@@ -81,35 +81,19 @@ def main():
  
 
     # ===================== Zero-Shot Evaluation =====================
-    if "zero_shot" in args.setup: #proto
-        best_logits = server.zero_shot(Dataset["train"], FM, processor, tokenizer, prototype=True)
-        accuracy = MyUtils.Evaluate2(
-            ground_truth = Dataset["train"]["label"],
-            output_logits = MyUtils.extend_proto_outputs_to_labels(Dataset, best_logits)
-        )
-        print(f"Accuracy of the teacher model: {accuracy}%\n")
-        
-    elif "bc" in args.setup:
-        best_logits = [
-            server.zero_shot(client.data["train"], FM, processor, tokenizer, prototype=False)
-            for client in clients
-        ]
-        
-        accuracy = [
-            MyUtils.Evaluate2(
-            ground_truth=client.data["train"]["label"],
-            output_logits=best_logits[client.ID]
-            )
-            for client in clients
-        ]
-        print(f"Accuracy of the teacher model: {accuracy}%\n")
-
+    if "zero_shot" in args.setup: 
+        zero_shot_logits = server.zero_shot(
+            public_data["train"], 
+            FM,
+            processor,
+            tokenizer,
+            proto = True if "proto" in args.setup else False,)
 
 
 
 
     # ==================================================================
-    # ===================== Perfomig the main loop =====================
+    # ===================== Perfoming the main loop ====================
     # ==================================================================
     for round in range(args.rounds):
         print("=" * 20, f" Round {round + 1}/{args.rounds} ", "=" * 20)
@@ -144,6 +128,16 @@ def main():
                     sifting = True if "sift" in args.setup else False,
                     )
             agg = server.aggregation()
+            continue
+        #==================================================================
+        elif 'zero_shot' in args.setup:
+            for client in clients:
+                client.local_distillation(
+                    client.public_data,
+                    zero_shot_logits, 
+                    proto = True if "proto" in args.setup else False,
+                    )
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
             continue
         #==================================================================
         elif "proposed" in args.setup:
@@ -207,7 +201,8 @@ if __name__ == "__main__":
         {"setup": "local"},
         {"setup": "fedavg"},
         {"setup": "fedmd_yn"},
-        {"setup": "proposed_yn"}
+        {"setup": "zero_shot"},
+        {"setup": "proposed_yn"}   
     ]
 
 
@@ -228,6 +223,14 @@ if __name__ == "__main__":
         clean_memory(FM, processor, tokenizer)
         
 
+
+
+
+
+
+
+
+    
     
     
     # ===================== Data Loading and Plot =====================
