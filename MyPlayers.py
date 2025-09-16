@@ -211,6 +211,10 @@ class Device():
         images = data["train"]["image"]
         labels = data["train"]["label"]
 
+        
+        images = torch.stack(images) if isinstance(images, list) else images
+        labels = torch.tensor(labels) if isinstance(labels, list) else labels
+
         dataset = TensorDataset(images, labels)
         loader = DataLoader(dataset, batch_size=64)
 
