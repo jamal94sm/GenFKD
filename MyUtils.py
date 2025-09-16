@@ -423,27 +423,29 @@ from torchvision import transforms
 from PIL import Image
 import os
 import torch
-from torch.utils.data import TensorDataset, DataLoader
 
-# -------------------------------
-# Loader: converts PIL -> Tensor
-# -------------------------------
-def load_synthetic_images(class_names, data_dir):
+def load_synthetic_images(class_names, data_dir, max_per_class=400):
     images = []
     labels = []
     transform = transforms.ToTensor()
 
-    for filename in os.listdir(data_dir):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            for class_name in class_names:
-                if filename.startswith(class_name):
-                    label = class_names.index(class_name)
-                    image_path = os.path.join(data_dir, filename)
-                    image = Image.open(image_path).convert("RGB")
-                    image_tensor = transform(image)   # Convert PIL -> Tensor
-                    images.append(image_tensor)
-                    labels.append(label)
-                    break
+    for class_name in class_names:
+        class_dir = os.path.join(data_dir, class_name)
+        if not os.path.exists(class_dir):
+            print(f"Warning: {class_dir} does not exist. Skipping.")
+            continue
+
+        class_files = [
+            f for f in os.listdir(class_dir)
+            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
+        ][:max_per_class]  # only take up to max_per_class images
+
+        for f in class_files:
+            image_path = os.path.join(class_dir, f)
+            image = Image.open(image_path).convert("RGB")
+            image_tensor = transform(image)
+            images.append(image_tensor)
+            labels.append(class_names.index(class_name))
 
     if len(images) == 0:
         raise RuntimeError(f"No images loaded from {data_dir}. Check directory or class names.")
@@ -453,11 +455,12 @@ def load_synthetic_images(class_names, data_dir):
         "label": labels
     })
 
-    print(f"Loaded {len(images)} images from {data_dir}")
+    print(f"Loaded {len(images)} images from {data_dir} ({len(class_files)} per class max)")
     return DatasetDict({
         "train": train_dataset,
         "test": None
     })
+
 
 ##############################################################################################################
 ##############################################################################################################
