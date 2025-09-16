@@ -418,44 +418,48 @@ def run_in_parallel(clients):
 ##############################################################################################################
 ##############################################################################################################
 
-from datasets import Dataset, DatasetDict
-from torchvision import transforms
-from PIL import Image
 import os
+from PIL import Image
+import torchvision.transforms as transforms
 import torch
+import numpy as np
+from datasets import Dataset, DatasetDict
 
-def load_synthetic_images(class_names, data_dir, max_per_class=100):
-    images = []
-    labels = []
-    transform = transforms.ToTensor()
+def load_synthetic_images(class_names, data_dir):
+    # Define transform to match CIFAR-10 format
+    transform = transforms.Compose([
+        transforms.Resize((32, 32)),
+        transforms.ToTensor(),
+    ])
 
-    for class_name in class_names:
-        class_dir = os.path.join(data_dir, class_name)
-        if not os.path.exists(class_dir):
-            print(f"Warning: {class_dir} does not exist. Skipping.")
-            continue
+    image_tensors = []
+    label_tensors = []
 
-        class_files = [
-            f for f in os.listdir(class_dir)
-            if f.lower().endswith(('.png', '.jpg', '.jpeg'))
-        ][:max_per_class]  # only take up to max_per_class images
+    for filename in os.listdir(data_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            for class_name in class_names:
+                if filename.startswith(class_name):
+                    label = class_names.index(class_name)
+                    image_path = os.path.join(data_dir, filename)
+                    image = Image.open(image_path).convert("RGB")
+                    tensor_image = transform(image)  # Shape: (3, 32, 32)
+                    image_tensors.append(tensor_image)
+                    label_tensors.append(label)
+                    break
 
-        for f in class_files:
-            image_path = os.path.join(class_dir, f)
-            image = Image.open(image_path).convert("RGB")
-            image_tensor = transform(image)
-            images.append(image_tensor)
-            labels.append(class_names.index(class_name))
+    # Use only the first 41 samples for training
+    train_images = torch.stack(image_tensors[:41])  # Shape: [41, 3, 32, 32]
+    train_labels = torch.tensor(label_tensors[:41]) # Shape: [41]
 
-    if len(images) == 0:
-        raise RuntimeError(f"No images loaded from {data_dir}. Check directory or class names.")
 
+
+    # Convert to NumPy arrays for Hugging Face compatibility
     train_dataset = Dataset.from_dict({
-        "image": images,
-        "label": labels
+        "image": train_images,
+        "label": train_labels,
     })
+    train_dataset.set_format("torch")
 
-    print(f"Loaded {len(images)} images from {data_dir} ({len(class_files)} per class max)")
     return DatasetDict({
         "train": train_dataset,
         "test": None
