@@ -210,16 +210,19 @@ class Device():
     def cal_logits(self, data, proto=False, sifting=False):
         images = data["train"]["image"]
         labels = data["train"]["label"]
-
-        images = torch.stack(images) if isinstance(images, list) else images
-        labels = torch.tensor(labels) if isinstance(labels, list) else labels
-        
+    
+        # Ensure tensors
+        if isinstance(images, list):
+            images = torch.stack(images)   # Now works since they’re tensors
+        if isinstance(labels, list):
+            labels = torch.tensor(labels, dtype=torch.long)
+    
         dataset = TensorDataset(images, labels)
         loader = DataLoader(dataset, batch_size=64)
-
+    
         all_logits = []
         all_labels = []
-
+    
         self.model.eval()
         with torch.no_grad():
             for batch_images, batch_labels in loader:
@@ -228,13 +231,13 @@ class Device():
                 logits = self.model(batch_images)
                 all_logits.append(logits)
                 all_labels.append(batch_labels)
-
+    
         logits = torch.cat(all_logits, dim=0)
         labels = torch.cat(all_labels, dim=0)
-
+    
         unique_classes = sorted(set(labels.tolist()))
         num_classes = len(unique_classes)
-
+    
         if sifting:
             predicted = torch.argmax(logits, dim=1)
             correct_mask = (predicted == labels)
@@ -245,8 +248,8 @@ class Device():
             final_mask = correct_mask | missing_class_mask
             logits = logits[final_mask]
             labels = labels[final_mask]
-
-        if not proto: 
+    
+        if not proto:
             self.logits = logits
         else:
             self.logits = torch.empty((num_classes, num_classes), device=logits.device)
@@ -254,6 +257,8 @@ class Device():
                 mask = labels == c
                 category_logits = logits[mask].mean(dim=0)
                 self.logits[c] = category_logits
+
+    
         
     def local_merge_training(self):
         merged = DatasetDict({
