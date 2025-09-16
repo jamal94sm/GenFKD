@@ -416,14 +416,16 @@ def run_in_parallel(clients):
 
 ##############################################################################################################
 ##############################################################################################################
-import os
-from PIL import Image
-import torchvision.transforms as transforms
-import torch
-import numpy as np
+from collections import defaultdict
+from torchvision import transforms
 from datasets import Dataset, DatasetDict
+from PIL import Image
+import os
+import torch
 
-def load_synthetic_images(class_names, data_dir):
+def load_synthetic_images(class_names, data_dir, max_per_class=100):
+    
+
     # Define transform to match CIFAR-10 format
     transform = transforms.Compose([
         transforms.Resize((32, 32)),
@@ -433,30 +435,40 @@ def load_synthetic_images(class_names, data_dir):
     image_tensors = []
     label_tensors = []
 
+    # Track how many images loaded per class
+    class_counts = defaultdict(int)
+
     for filename in os.listdir(data_dir):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             for class_name in class_names:
                 if filename.startswith(class_name):
+                    if class_counts[class_name] >= max_per_class:
+                        break  # Skip if class already full
                     label = class_names.index(class_name)
                     image_path = os.path.join(data_dir, filename)
                     image = Image.open(image_path).convert("RGB")
                     tensor_image = transform(image)  # Shape: (3, 32, 32)
                     image_tensors.append(tensor_image)
                     label_tensors.append(label)
-                    break
+                    class_counts[class_name] += 1
+                    break  # Stop checking other class names for this file
 
-    # Use only the first 41 samples for training
-    train_images = torch.stack(image_tensors[:41])  # Shape: [41, 3, 32, 32]
-    train_labels = torch.tensor(label_tensors[:41]) # Shape: [41]
+    if not image_tensors:
+        raise RuntimeError(f"No images loaded from {data_dir}. Check directory or class names.")
 
+    # Stack into tensors
+    train_images = torch.stack(image_tensors)
+    train_labels = torch.tensor(label_tensors)
 
-
-    # Convert to NumPy arrays for Hugging Face compatibility
+    # Convert to Hugging Face dataset
     train_dataset = Dataset.from_dict({
         "image": train_images,
         "label": train_labels,
     })
     train_dataset.set_format("torch")
+
+    print(f"Loaded dataset: {len(train_images)} images across {len(class_names)} classes "
+          f"(max {max_per_class} per class).")
 
     return DatasetDict({
         "train": train_dataset,
