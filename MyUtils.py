@@ -440,7 +440,7 @@ def load_synthetic_images(class_names, data_dir):
                     label = class_names.index(class_name)
                     image_path = os.path.join(data_dir, filename)
                     image = Image.open(image_path).convert("RGB")
-                    image_tensor = transform(image)   # ✅ Convert PIL -> Tensor
+                    image_tensor = transform(image)   # Convert PIL -> Tensor
                     images.append(image_tensor)
                     labels.append(label)
                     break
@@ -453,7 +453,7 @@ def load_synthetic_images(class_names, data_dir):
         "label": labels
     })
 
-    print(f"✅ Loaded {len(images)} images from {data_dir}")
+    print(f"Loaded {len(images)} images from {data_dir}")
     return DatasetDict({
         "train": train_dataset,
         "test": None
