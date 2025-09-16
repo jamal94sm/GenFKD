@@ -93,7 +93,7 @@ class Server():
         )
         self.Loss += loss
 
-    def zero_shot(self, data, FM, processor, tokenizer, prototype=False, batch_size=16):
+    def zero_shot(self, data, FM, processor, tokenizer, proto=False, batch_size=16):
         
         processor.image_processor.do_rescale = False
         processor.image_processor.do_normalize = False
@@ -101,7 +101,8 @@ class Server():
         device = args.device
         images = data["image"]
         labels = data["label"]
-
+        
+        
         img_reps = []
 
         # Process images in batches
@@ -129,7 +130,7 @@ class Server():
             logit_scale = self.model.logit_scale.exp()
             logits = logit_scale * img_rep @ text_rep.t()
 
-        if not prototype:
+        if not proto:
             return logits
 
         unique_classes = sorted(set(labels.tolist()))
