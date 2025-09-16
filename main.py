@@ -60,6 +60,18 @@ def main():
     print(f'Device: {device}')
     
     # ===================== Build public dataset =====================
+    name_classes = [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+    ]
     public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10" ) 
 
 
@@ -188,7 +200,7 @@ if __name__ == "__main__":
 
 
 
-    # ===================== Data Distribution =====================
+    # ===================== Data Distribution ====================   
     distributed_dataset, num_samples = MyDatasets.data_distributing(Dataset, num_classes)
     print("\n ]data distribution of devices: \n", num_samples)
 
