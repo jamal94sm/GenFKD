@@ -72,7 +72,8 @@ def main():
     "ship",
     "truck"
     ]
-    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10" ) 
+    synth_img_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
+    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = synth_img_dir, max_per_class=args.num_synth_img_per_class) 
 
 
     #id = args.num_clients-1
