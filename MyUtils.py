@@ -424,7 +424,7 @@ from PIL import Image
 import os
 import torch
 
-def load_synthetic_images(class_names, data_dir, max_per_class=10):
+def load_synthetic_images(class_names, data_dir, max_per_class=100):
     images = []
     labels = []
     transform = transforms.ToTensor()
