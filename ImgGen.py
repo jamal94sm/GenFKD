@@ -6,21 +6,25 @@ def load_synthetic_images(class_names, data_dir):
     images = []
     labels = []
 
-    for filename in os.listdir(data_dir):
-        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            for class_name in class_names:
-                if filename.startswith(class_name):
-                    label = class_names.index(class_name)
-                    image_path = os.path.join(data_dir, filename)
-                    image = Image.open(image_path).convert("RGB")
-                    images.append(image)
-                    labels.append(label)
-                    break
+    for label, class_name in enumerate(class_names):
+        class_dir = os.path.join(data_dir, class_name)
+        if not os.path.exists(class_dir):
+            print(f"⚠️ Warning: Directory not found for class {class_name}")
+            continue
+
+        for filename in os.listdir(class_dir):
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                image_path = os.path.join(class_dir, filename)
+                image = Image.open(image_path).convert("RGB")
+                images.append(image)
+                labels.append(label)
 
     train_dataset = Dataset.from_dict({
         "image": images,
         "label": labels
     })
+
+    print(f"✅ Loaded dataset with {len(images)} images across {len(class_names)} classes.")
 
     return DatasetDict({
         "train": train_dataset,
@@ -28,8 +32,26 @@ def load_synthetic_images(class_names, data_dir):
     })
 
 
+# ✅ Complete CIFAR-10 classes
+name_classes = [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+]
 
-data = load_synthetic_images(class_names, data_dir)
+# Path to your dataset
+public_data = load_synthetic_images(
+    name_classes,
+    data_dir="/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
+)
+
 
 '''
 from diffusers import StableDiffusionPipeline
