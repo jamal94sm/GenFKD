@@ -1,66 +1,3 @@
-from datasets import Dataset, DatasetDict
-from PIL import Image
-import os
-
-def load_synthetic_images(class_names, data_dir, max_per_class=10):
-    images = []
-    labels = []
-
-    for label, class_name in enumerate(class_names):
-        class_dir = os.path.join(data_dir, class_name)
-        if not os.path.exists(class_dir):
-            print(f"⚠️ Warning: Directory not found for class {class_name}")
-            continue
-
-        count = 0
-        for filename in os.listdir(class_dir):
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                image_path = os.path.join(class_dir, filename)
-                image = Image.open(image_path).convert("RGB")
-                images.append(image)
-                labels.append(label)
-                count += 1
-                if count >= max_per_class:  # stop after 10 images
-                    break
-
-    train_dataset = Dataset.from_dict({
-        "image": images,
-        "label": labels
-    })
-
-    print(f"✅ Loaded dataset with {len(images)} images ({max_per_class} per class × {len(class_names)} classes).")
-
-    return DatasetDict({
-        "train": train_dataset,
-        "test": None
-    })
-
-
-# ✅ Complete CIFAR-10 classes
-name_classes = [
-    "airplane",
-    "automobile",
-    "bird",
-    "cat",
-    "deer",
-    "dog",
-    "frog",
-    "horse",
-    "ship",
-    "truck"
-]
-
-# Path to your dataset
-public_data = load_synthetic_images(
-    name_classes,
-    data_dir="/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10",
-    max_per_class=5
-)
-
-
-
-
-'''
 from diffusers import StableDiffusionPipeline
 import torch
 from transformers import CLIPProcessor, CLIPModel
@@ -212,4 +149,4 @@ print("\nImage generation completed.\n")
 print("Summary of saved images per class:")
 for cls, count in saved_summary.items():
     print(f"- {cls}: {count} images saved")
-'''
+
