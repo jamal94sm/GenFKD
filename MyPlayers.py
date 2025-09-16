@@ -200,7 +200,7 @@ class Device():
                                         "student_model_output": data["train"]["label"], 
                                         "teacher_knowledge": teacher_knowledge}
                                       )
-        a, b, c = MyUtils.Distil(self.model, extended_data, data, self.optimizer, self.scheduler, self.loss_fn,
+        a, b, c = MyUtils.Distil(self.model, extended_data, self.data, self.optimizer, self.scheduler, self.loss_fn,
                                  args.local_batch_size, args.local_epochs, args.device, args.debug)
         self.Loss += a
         self.Acc += b
@@ -210,23 +210,13 @@ class Device():
     def cal_logits(self, data, proto=False, sifting=False):
         images = data["train"]["image"]
         labels = data["train"]["label"]
-    
-        # Convert all elements to tensors if they are lists
-        images = [img if isinstance(img, torch.Tensor) else torch.tensor(img) for img in images]
-        labels = [lbl if isinstance(lbl, torch.Tensor) else torch.tensor(lbl) for lbl in labels]
-    
-        # Now stack safely
-        images = torch.stack(images)
-        labels = torch.tensor(labels)
-    
-        print(f"Images tensor shape: {images.shape}, Labels tensor shape: {labels.shape}")
-    
+
         dataset = TensorDataset(images, labels)
         loader = DataLoader(dataset, batch_size=64)
-    
+
         all_logits = []
         all_labels = []
-    
+
         self.model.eval()
         with torch.no_grad():
             for batch_images, batch_labels in loader:
@@ -235,13 +225,13 @@ class Device():
                 logits = self.model(batch_images)
                 all_logits.append(logits)
                 all_labels.append(batch_labels)
-    
+
         logits = torch.cat(all_logits, dim=0)
         labels = torch.cat(all_labels, dim=0)
-    
+
         unique_classes = sorted(set(labels.tolist()))
         num_classes = len(unique_classes)
-    
+
         if sifting:
             predicted = torch.argmax(logits, dim=1)
             correct_mask = (predicted == labels)
@@ -252,7 +242,7 @@ class Device():
             final_mask = correct_mask | missing_class_mask
             logits = logits[final_mask]
             labels = labels[final_mask]
-    
+
         if not proto: 
             self.logits = logits
         else:
@@ -261,9 +251,6 @@ class Device():
                 mask = labels == c
                 category_logits = logits[mask].mean(dim=0)
                 self.logits[c] = category_logits
-
-
-    
         
     def local_merge_training(self):
         merged = DatasetDict({
