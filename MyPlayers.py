@@ -211,22 +211,6 @@ class Device():
         images = data["train"]["image"]
         labels = data["train"]["label"]
 
-        
-        # Ensure images are tensors of shape [N, C, H, W]
-        if isinstance(images, list):
-            if isinstance(images[0], torch.Tensor):
-                images = torch.stack(images)
-            else:
-                images = torch.stack([torch.tensor(img) for img in images])
-        elif not isinstance(images, torch.Tensor):
-            images = torch.tensor(images)
-    
-        # Ensure labels are tensor of dtype long
-        if not isinstance(labels, torch.Tensor):
-            labels = torch.tensor(labels, dtype=torch.long)
-
-        dataset = TensorDataset(images, labels)
-        loader = DataLoader(dataset, batch_size=64)
 
         all_logits = []
         all_labels = []
