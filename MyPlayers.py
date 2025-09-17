@@ -202,9 +202,7 @@ class Device():
                                       )
         a, b, c = MyUtils.Distil(self.model, extended_data, self.data, self.optimizer, self.scheduler, self.loss_fn,
                                  args.local_batch_size, args.local_epochs, args.device, args.debug)
-        self.Loss += a
-        self.Acc += b
-        self.test_Acc += c
+        
 
 
     def cal_logits(self, data, proto=False, sifting=False):
