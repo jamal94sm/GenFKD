@@ -5,7 +5,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4            # adjust (e.g., 8 or 16 if needed)
 #SBATCH --mem=40G                    # memory per node
-#SBATCH --time=6:00:00               # job time limit (HH:MM:SS)
+#SBATCH --time=10:00:00               # job time limit (HH:MM:SS)
 #SBATCH --mail-user=jamal73sm@gmail.com
 #SBATCH --mail-type=ALL
 
@@ -29,6 +29,6 @@ module load cuda
 source /home/shahab33/fed2p/bin/activate #Narval
 
 #python main1.py --local_model_name "ResNet20" --num_train_samples 10000 --alpha_dirichlet 10 --output_name "ResNet20_10K_alpha10_"  	# this is the direction and the name of your code
-python main.py --local_model_name "ResNet18" --num_train_samples 10000 --alpha_dirichlet 100 --output_name "ResNet18_10K_alpha100_"
+python main.py --local_model_name "ResNet18" --num_train_samples 10000 --alpha_dirichlet 100 --output_name "ResNet18_10K_alpha100_T2_"
 
 #python ImgGen.py
