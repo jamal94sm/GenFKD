@@ -304,7 +304,7 @@ def adjust_temperature_orginal(inputs, iteration, optimal_temperature, is_softma
         probabilities = torch.nn.functional.softmax(inputs / optimal_temperature, dim=1)
     return probabilities, optimal_temperature
 ############################################################################################################## 
-def plot(arrays, names=[""], title='Comparison of Arrays', xlabel='rounds', ylabel='accuracy %', file_name="figure"):
+def plot(arrays, names=[""], title='Comparison of Arrays', xlabel='rounds', ylabel='accuracy %', file_name="figure"+args.output_name):
     # Convert to numpy array with dtype=object to handle inhomogeneous sequences
     arrays = np.array(arrays, dtype=object)
 
@@ -437,7 +437,7 @@ def load_synthetic_images(class_names, data_dir, max_per_class=100):
     for class_idx, class_name in enumerate(class_names):
         class_dir = os.path.join(data_dir, class_name)
         if not os.path.isdir(class_dir):
-            print(f"⚠️ Warning: directory not found for class '{class_name}' at {class_dir}")
+            print(f"Warning: directory not found for class '{class_name}' at {class_dir}")
             continue
 
         count = 0
@@ -468,7 +468,7 @@ def load_synthetic_images(class_names, data_dir, max_per_class=100):
     })
     train_dataset.set_format("torch")
 
-    print(f"✅ Final dataset: {len(train_images)} images across {len(class_names)} classes "
+    print(f"Final dataset: {len(train_images)} images across {len(class_names)} classes "
           f"(max {max_per_class} per class).")
 
     return DatasetDict({
