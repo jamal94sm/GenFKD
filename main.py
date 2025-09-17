@@ -220,9 +220,9 @@ if __name__ == "__main__":
     configurations = [
         {"setup": "proposed_yn"},
         {"setup": "fedmd_yn"},
-        {"setup": "zero_shot"},
-        {"setup": "local"},
-        {"setup": "fedavg"}
+        #{"setup": "zero_shot"},
+        #{"setup": "local"},
+        #{"setup": "fedavg"}
                  
     ]
 
