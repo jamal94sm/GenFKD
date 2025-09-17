@@ -150,8 +150,10 @@ def main():
             agg = server.aggregation()
             continue
         #==================================================================
+        
         elif 'zero_shot' in args.setup:
             for client in clients:
+                dlient.local_training()
                 client.local_distillation(
                     client.public_data,
                     zero_shot_logits, 
