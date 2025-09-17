@@ -80,7 +80,7 @@ def main():
     #public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_data/CIFAR10" ) 
 
     synth_img_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
-    public_data = MyUtils.load_synthetic_images( name_classes, data_dir = synth_img_dir)
+    public_data = MyUtils.load_synthetic_images( name_classes, data_dir=synth_img_dir, max_per_class=args.num_synth_img_per_class)
 
     #id = args.num_clients-1
     #last_client = MyPlayers.Device(id, distributed_dataset[id], num_classes, name_classes , None)
@@ -218,11 +218,12 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        #{"setup": "local"},
-        #{"setup": "fedavg"},
-        #{"setup": "fedmd_yn"},
-        #{"setup": "zero_shot"},
-        {"setup": "proposed_yn"}   
+        {"setup": "proposed_yn"}
+        {"setup": "fedmd_yn"},
+        {"setup": "zero_shot"},
+        {"setup": "local"},
+        {"setup": "fedavg"}
+                 
     ]
 
 
