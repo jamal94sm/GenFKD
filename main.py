@@ -153,7 +153,27 @@ def main():
             agg = server.aggregation()
             continue
         #==================================================================
-        
+        elif 'fedmd_synth' in args.setup:
+            for client in clients:
+                
+                if round > 0 :  
+                    client.local_distillation(
+                        client.public_data,
+                        agg, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
+                client.cal_logits( 
+                    client.public_data,
+                    proto = True if "proto" in args.setup else False,
+                    sifting = True if "sift" in args.setup else False,
+                    )
+            agg = server.aggregation()
+            continue
+        #==================================================================
         elif 'zero_shot' in args.setup:
             for client in clients:
                 dlient.local_training()
