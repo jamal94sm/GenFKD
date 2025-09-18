@@ -82,9 +82,9 @@ def main():
     synth_img_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
     public_data = MyUtils.load_synthetic_images( name_classes, data_dir=synth_img_dir, max_per_class=args.num_synth_img_per_class)
 
-    #id = args.num_clients-1
-    #last_client = MyPlayers.Device(id, distributed_dataset[id], num_classes, name_classes , None)
-    #public_data = last_client.data
+    id = args.num_clients-1
+    last_client = MyPlayers.Device(id, distributed_dataset[id], num_classes, name_classes , None)
+    public_data_2 = last_client.data
     
 
     # ===================== Client and Server Setup =====================
@@ -134,16 +134,19 @@ def main():
         #==================================================================
         elif 'fedmd' in args.setup:
             for client in clients:
-                client.local_training()
-                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
                 if round > 0 :  
                     client.local_distillation(
-                        client.public_data,
+                        public_data_2,
                         agg, 
                         proto = True if "proto" in args.setup else False,
                         )
+                
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
                 client.cal_logits( 
-                    client.public_data,
+                    public_data_2,
                     proto = True if "proto" in args.setup else False,
                     sifting = True if "sift" in args.setup else False,
                     )
@@ -164,14 +167,17 @@ def main():
         #==================================================================
         elif "proposed" in args.setup:
             for client in clients:
-                client.local_training()
-                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
                 if round > 0 :  
                     client.local_distillation(
                         client.public_data,
                         general_knowledge, 
                         proto = True if "proto" in args.setup else False,
                         )
+                
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
                 client.cal_logits( 
                     client.public_data,
                     proto = True if "proto" in args.setup else False,
