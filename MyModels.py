@@ -64,8 +64,8 @@ class Image_prompting_plus_Fm(nn.Module):
         self.generate_basic_text_rep()
 
         hidden_size = self.FM.vision_model.config.hidden_size
-        self.soft_prompts = nn.Parameter(torch.randn(1, 4, hidden_size) * 0.02) # 4= num_prompts
-        self.prompt_pos_embed = nn.Parameter(torch.zeros(1, 4, hidden_size))
+        self.soft_prompts = nn.Parameter(torch.randn(1, args.num_prompts, hidden_size) * 0.02) # 4= num_prompts
+        self.prompt_pos_embed = nn.Parameter(torch.zeros(1, args.num_prompts, hidden_size))
         nn.init.trunc_normal_(self.prompt_pos_embed, std=0.02)
 
     def load_descriptions(self):
