@@ -30,6 +30,6 @@ module load cuda
 source /home/shahab33/fed2p/bin/activate #Narval
 
 #python main1.py --local_model_name "ResNet20" --num_train_samples 10000 --alpha_dirichlet 10 --output_name "ResNet20_10K_alpha10_"  	# this is the direction and the name of your code
-python main.py --local_model_name "ResNet18" --num_train_samples 11000 --alpha_dirichlet 1 --rounds 30 --num_synth_img_per_class 100 --global_rounds 5 --num_prompts 1 --output_name "_ResNet18_10K_alpha1_synth100_np1_ge5_"
+python main.py --local_model_name "ResNet18" --num_train_samples 11000 --alpha_dirichlet 1 --rounds 30 --num_synth_img_per_class 100 --global_rounds 5 --num_prompts 10 --output_name "_ResNet18_10K_alpha1_synth100_np10_ge5_"
 
 #python ImgGen.py
