@@ -176,7 +176,7 @@ def main():
         #==================================================================
         elif 'zero_shot' in args.setup:
             for client in clients:
-                dlient.local_training()
+                client.local_training()
                 client.local_distillation(
                     client.public_data,
                     zero_shot_logits, 
@@ -246,9 +246,9 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        {"setup": "fedmd_synth_yn"},
-        {"setup": "proposed_yn"},
-        {"setup": "fedmd_yn"},
+        #{"setup": "fedmd_synth_yn"},
+        #{"setup": "proposed_yn"},
+        #{"setup": "fedmd_yn"},
         {"setup": "zero_shot"},
         {"setup": "local"},
         {"setup": "fedavg"}
