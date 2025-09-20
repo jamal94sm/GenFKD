@@ -250,13 +250,13 @@ class Device():
                 category_logits = logits[mask].mean(dim=0)
                 self.logits[c] = category_logits
         
-    def local_selective_training(self, data):
+    def local_selective_training(self, data, eval=True):
         #merged = DatasetDict({
         #    "train": concatenate_datasets([self.data["train"], self.public_data["train"]]),
         #    "test": self.data["test"]  # Only ds1 has a test split
         #})
 
-        a,b, c = MyUtils.Train(self.model, data, self.optimizer, self.scheduler, self.loss_fn,
+        a,b, c = MyUtils.Train(self.model, data, eval=eval, self.optimizer, self.scheduler, self.loss_fn,
                                args.local_batch_size, args.local_epochs, args.device, args.debug)
         self.Loss += a
         self.Acc += b
