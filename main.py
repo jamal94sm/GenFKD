@@ -248,12 +248,12 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        #{"setup": "local"},
-        #{"setup": "fedmd_synth_yn"},
+        {"setup": "local"},
+        {"setup": "fedmd_synth_yn"},
         {"setup": "proposed_yn"},
-        #{"setup": "fedmd_yn"},
-        #{"setup": "zero_shot"},
-        #{"setup": "fedavg"}
+        {"setup": "fedmd_yn"},
+        {"setup": "zero_shot"},
+        {"setup": "fedavg"}
                  
     ]
 
