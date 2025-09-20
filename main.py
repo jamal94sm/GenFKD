@@ -250,10 +250,9 @@ if __name__ == "__main__":
         {"setup": "local"},
         #{"setup": "proposed_yn"},
         #{"setup": "fedmd_synth_yn"},
-        #{"setup": "proposed_yn"},
-        #{"setup": "fedmd_yn"},
+        {"setup": "fedmd_yn"},
         #{"setup": "zero_shot"},
-        #{"setup": "fedavg"}
+        {"setup": "fedavg"}
                  
     ]
 
