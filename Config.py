@@ -21,7 +21,7 @@ def get_args():
 
     parser.add_argument('--num_synth_img_per_class', type=int, default=100)
     parser.add_argument('--num_prompts', type=int, default=10)
-    parser.add_argument('--global_epochs', type=int, default=1)
+    parser.add_argument('--global_epochs', type=int, default=3)
     
     parser.add_argument('--Foundation_model', type=str, default="openai/clip-vit-base-patch32")
     parser.add_argument('--rounds', type=int, default=30)
