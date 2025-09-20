@@ -77,8 +77,7 @@ def main():
     print(f'Device: {device}')
     
     # ===================== Build public dataset =====================
-    #public_data = MyUtils.load_synthetic_images( name_classes, data_dir = "Synthetic_data/CIFAR10" ) 
-
+    
     synth_img_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/CIFAR10"
     #public_data = MyUtils.load_synthetic_images( name_classes, data_dir=synth_img_dir, max_per_class=args.num_synth_img_per_class)
     public_data = MyUtils.load_synthetic_images(name_classes, image_size=distributed_dataset[0]["train"]["image"].shape[-2:], data_dir=synth_img_dir, max_per_class=100)
@@ -235,7 +234,7 @@ if __name__ == "__main__":
 
     # ===================== Dataset and Model Loading =====================
     Dataset, num_classes, name_classes = MyDatasets.load_data_from_Huggingface()
-
+    print("\n ]class names: \n", name_classes)
 
 
     # ===================== Data Distribution =====================
