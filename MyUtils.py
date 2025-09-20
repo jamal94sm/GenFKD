@@ -427,7 +427,7 @@ import os
 import torch
 
 
-def load_synthetic_images(class_names, image_size, data_dir):
+def load_synthetic_images(class_names, image_size, data_dir, max_per_class=100):
     # Define transform to match CIFAR-10 format
     transform = transforms.Compose([
         transforms.Resize(tuple(image_size)),
@@ -437,22 +437,29 @@ def load_synthetic_images(class_names, image_size, data_dir):
     image_tensors = []
     label_tensors = []
 
+    # Track counts per class
+    class_counts = {class_name: 0 for class_name in class_names}
+
     for filename in os.listdir(data_dir):
         if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
             for class_name in class_names:
-                if filename.startswith(class_name):
+                if filename.startswith(class_name) and class_counts[class_name] < max_per_class:
                     label = class_names.index(class_name)
                     image_path = os.path.join(data_dir, filename)
                     image = Image.open(image_path).convert("RGB")
                     tensor_image = transform(image)  
                     image_tensors.append(tensor_image)
                     label_tensors.append(label)
-                    break
+                    class_counts[class_name] += 1
+                    break  # stop checking other classes once matched
+
+    if not image_tensors:  # safety check
+        raise ValueError("No images loaded. Check data_dir or class_names.")
 
     train_images = torch.stack(image_tensors)  
     train_labels = torch.tensor(label_tensors)
 
-    # Convert to NumPy arrays for Hugging Face compatibility
+    # Convert to Hugging Face Dataset
     train_dataset = Dataset.from_dict({
         "image": train_images,
         "label": train_labels,
