@@ -256,7 +256,7 @@ class Device():
         #    "test": self.data["test"]  # Only ds1 has a test split
         #})
 
-        a,b, c = MyUtils.Train(self.model, data, eval=eval, self.optimizer, self.scheduler, self.loss_fn, args.local_batch_size, args.local_epochs, args.device, args.debug)
+        a,b, c = MyUtils.Train(self.model, data, self.optimizer, self.scheduler, self.loss_fn, args.local_batch_size, args.local_epochs, args.device, args.debug, eval=eval)
         self.Loss += a
         self.Acc += b
         self.test_Acc += c
