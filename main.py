@@ -121,14 +121,14 @@ def main():
         if 'local' in args.setup:
             for client in clients:
                 client.local_selective_training(client.data)
-                client.local_selective_training(public_data_2)
+                client.local_selective_training(public_data_2, eval=False)
                 print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
             continue
         #==================================================================
         elif 'fedavg' in args.setup:
             for client in clients:
                 client.local_selective_training(client.data)
-                client.local_selective_training(public_data_2)
+                client.local_selective_training(public_data_2, eval=False)
                 print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
             server.fedavg_aggregation_and_implanting()
             continue
