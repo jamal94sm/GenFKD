@@ -419,14 +419,14 @@ def run_in_parallel(clients):
 
 ##############################################################################################################
 ##############################################################################################################
-from collections import defaultdict
+import os
+from PIL import Image
+import torch
 from torchvision import transforms
 from datasets import Dataset, DatasetDict
-from PIL import Image
-import os
-import torch
 
 def load_synthetic_images(class_names, image_size, data_dir, max_per_class=100):
+    # Define transform to match CIFAR-10 format
     transform = transforms.Compose([
         transforms.Resize(tuple(image_size)),
         transforms.ToTensor(),
@@ -436,25 +436,24 @@ def load_synthetic_images(class_names, image_size, data_dir, max_per_class=100):
     label_tensors = []
     class_counts = {class_name: 0 for class_name in class_names}
 
-    all_files = [f for f in os.listdir(data_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-    if not all_files:
-        raise ValueError(f"No image files found in {data_dir}")
+    # Walk through subdirectories
+    for root, _, files in os.walk(data_dir):
+        for filename in files:
+            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+                for class_name in class_names:
+                    if class_name.lower() in root.lower() and class_counts[class_name] < max_per_class:
+                        label = class_names.index(class_name)
+                        image_path = os.path.join(root, filename)
+                        image = Image.open(image_path).convert("RGB")
+                        tensor_image = transform(image)
+                        image_tensors.append(tensor_image)
+                        label_tensors.append(label)
+                        class_counts[class_name] += 1
+                        break  # stop checking other classes once matched
 
-    for filename in all_files:
-        for class_name in class_names:
-            if class_name.lower() in filename.lower() and class_counts[class_name] < max_per_class:
-                label = class_names.index(class_name)
-                image_path = os.path.join(data_dir, filename)
-                image = Image.open(image_path).convert("RGB")
-                tensor_image = transform(image)
-                image_tensors.append(tensor_image)
-                label_tensors.append(label)
-                class_counts[class_name] += 1
-                break
-
-    # check if we loaded anything
+    # Check if we loaded anything
     if not image_tensors:
-        raise ValueError(f"No images loaded. Check data_dir={data_dir} or class_names={class_names}")
+        raise ValueError(f"No images loaded from {data_dir}. Check folder structure and class_names={class_names}")
 
     print("Loaded per class:", class_counts)
 
