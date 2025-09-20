@@ -42,7 +42,7 @@ def Evaluate2(ground_truth, output_logits):
         )
     return accuracy
 ##############################################################################################################
-def Train(model, data, optimizer, scheduler, loss_fn,  batch_size, epochs, device, debug):
+def Train(model, data, eval, optimizer, scheduler, loss_fn,  batch_size, epochs, device, debug):
 
     dataset = torch.utils.data.DataLoader(
         data["train"],
@@ -73,7 +73,7 @@ def Train(model, data, optimizer, scheduler, loss_fn,  batch_size, epochs, devic
         epoch_loss.append(np.mean(batch_loss))
         epoch_acc.append( Evaluate(model,  data["train"]["image"], data["train"]["label"], device)[0] )
 
-        if data['test'] is not None:
+        if data['test'] is not None and eval is True:
             epoch_test_acc.append( Evaluate(model,  data["test"]["image"], data["test"]["label"], device)[0] )
         
         if debug: print("Epoch {}/{} ===> Loss: {:.2f}, Train accuracy: {:.2f}, Test accuracy: {:.2f}".format(epoch, epochs, epoch_loss[-1], epoch_acc[-1], epoch_test_acc[-1]))
