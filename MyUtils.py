@@ -425,54 +425,39 @@ from datasets import Dataset, DatasetDict
 from PIL import Image
 import os
 import torch
-def load_synthetic_images(class_names, data_dir, max_per_class=100):
-    
 
+
+def load_synthetic_images(class_names, image_size, data_dir):
     # Define transform to match CIFAR-10 format
     transform = transforms.Compose([
-        transforms.Resize((32, 32)),
+        transforms.Resize(tuple(image_size)),
         transforms.ToTensor(),
     ])
 
     image_tensors = []
     label_tensors = []
 
-    for class_idx, class_name in enumerate(class_names):
-        class_dir = os.path.join(data_dir, class_name)
-        if not os.path.isdir(class_dir):
-            print(f"Warning: directory not found for class '{class_name}' at {class_dir}")
-            continue
-
-        count = 0
-        for filename in os.listdir(class_dir):
-            if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                if count >= max_per_class:
+    for filename in os.listdir(data_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            for class_name in class_names:
+                if filename.startswith(class_name):
+                    label = class_names.index(class_name)
+                    image_path = os.path.join(data_dir, filename)
+                    image = Image.open(image_path).convert("RGB")
+                    tensor_image = transform(image)  
+                    image_tensors.append(tensor_image)
+                    label_tensors.append(label)
                     break
-                image_path = os.path.join(class_dir, filename)
-                image = Image.open(image_path).convert("RGB")
-                tensor_image = transform(image)  # Shape: (3, 32, 32)
-                image_tensors.append(tensor_image)
-                label_tensors.append(class_idx)
-                count += 1
 
-        print(f"Loaded {count} images for class '{class_name}'")
-
-    if not image_tensors:
-        raise RuntimeError(f"No images loaded from {data_dir}. Check directory structure and class names.")
-
-    # Stack into tensors
-    train_images = torch.stack(image_tensors)
+    train_images = torch.stack(image_tensors)  
     train_labels = torch.tensor(label_tensors)
 
-    # Convert to Hugging Face dataset
+    # Convert to NumPy arrays for Hugging Face compatibility
     train_dataset = Dataset.from_dict({
         "image": train_images,
         "label": train_labels,
     })
     train_dataset.set_format("torch")
-
-    print(f"Final dataset: {len(train_images)} images across {len(class_names)} classes "
-          f"(max {max_per_class} per class).")
 
     return DatasetDict({
         "train": train_dataset,
