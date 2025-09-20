@@ -42,7 +42,7 @@ def Evaluate2(ground_truth, output_logits):
         )
     return accuracy
 ##############################################################################################################
-def Train(model, data, eval, optimizer, scheduler, loss_fn,  batch_size, epochs, device, debug):
+def Train(model, data, optimizer, scheduler, loss_fn,  batch_size, epochs, device, debug, eval):
 
     dataset = torch.utils.data.DataLoader(
         data["train"],
