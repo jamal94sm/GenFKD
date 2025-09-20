@@ -248,12 +248,12 @@ if __name__ == "__main__":
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
         {"setup": "local"},
-        {"setup": "proposed_yn"},
-        {"setup": "fedmd_synth_yn"},
-        {"setup": "proposed_yn"},
-        {"setup": "fedmd_yn"},
-        {"setup": "zero_shot"},
-        {"setup": "fedavg"}
+        #{"setup": "proposed_yn"},
+        #{"setup": "fedmd_synth_yn"},
+        #{"setup": "proposed_yn"},
+        #{"setup": "fedmd_yn"},
+        #{"setup": "zero_shot"},
+        #{"setup": "fedavg"}
                  
     ]
 
