@@ -274,18 +274,38 @@ def main():
                 client.local_training()
                 print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
             continue
+        #=================================================================
+        elif "koala" in args.setup: 
+            for client in clients:
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                if round > 0 :  
+                    client.local_distillation(
+                        public_data_2,
+                        general_knowledge, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+
+            global_model = server.fedavg_aggregation()
+            train_loader = torch.utils.data.DataLoader(public_data_2['train'], batch_size=32)
+            global_model.eval()
+            global_logits = torch.cat([ global_model(batch['image'].to(device)).cpu() for batch in torch.utils.data.DataLoader(public_data_2['train'], batch_size=32) ], dim=0)
+            server.distill_generator(public_data_2, global_logits)
+            general_knowledge = server.get_general_knowledge()
+            continue
             
 
 
 
 
-
-
-
-        
     # ===================== Save Results =====================
-    avg_test_Acc = np.mean([client.test_Acc for client in clients], axis=0)
+    if  args.setup == 'open_vocab':
+        avg_test_Acc = clients[0].test_Acc
+    else:
+        avg_test_Acc = np.mean([client.test_Acc for client in clients], axis=0)
     MyUtils.save_as_json(avg_test_Acc, args, file_name= args.output_name + "accuracy_"+args.setup)
+
+    
 
 ##############################################################################################################
 ##############################################################################################################
@@ -312,10 +332,10 @@ if __name__ == "__main__":
         #{"setup": "fedavg"},
         #{"setup": "fedmd_yn"},
         #{"setup": "zero_shot"},
-        {"setup": "open_vocab"},
-        {"setup": "fl_vocab"},
+        #{"setup": "open_vocab"},
+        #{"setup": "fl_vocab"}
         #{"setup": "sidclip"},
-        #{"setup": "koala"},
+        {"setup": "koala"},
         #{"setup": "proposed_yn"}   
     ]
 
