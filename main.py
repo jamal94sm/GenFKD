@@ -102,7 +102,7 @@ def main():
  
 
     # ===================== Zero-Shot Evaluation =====================
-    if "zero_shot" in args.setup or "open_vocab" in args.setup:
+    if "zero_shot" in args.setup or "open_vocab" in args.setup or "fl_vocab" in args.setup:
         zero_shot_logits = server.zero_shot(
             public_data["train"], 
             FM,
