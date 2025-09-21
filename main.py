@@ -258,7 +258,7 @@ def main():
                                 batch_size = 8, 
                                 epochs = 20,
                                 device = args.device,
-                                debug = False)
+                                debug = False, eval=False)
                                 
                     teacher_logits = teacher_model.inference(client.public_data)
                     client.local_distillation(
