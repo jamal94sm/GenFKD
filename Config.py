@@ -19,7 +19,7 @@ def get_args():
     parser.add_argument('--num_test_samples', type=int, default=10)
     parser.add_argument('--dataset', type=str, default="cifar10")
 
-    parser.add_argument('--num_synth_img_per_class', type=int, default=10)
+    parser.add_argument('--num_synth_img_per_class', type=int, default=1)
     parser.add_argument('--num_prompts', type=int, default=10)
     parser.add_argument('--global_epochs', type=int, default=3)
     
