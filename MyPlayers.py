@@ -66,7 +66,8 @@ class Server():
             debug = args.debug
         )
         self.Loss += loss
-        
+
+    
     def distill_generator(self, data, logits):
         teacher_knowledge = logits
         
@@ -93,6 +94,35 @@ class Server():
         )
         self.Loss += loss
 
+    
+    def fedavg_aggregation(self):
+        import copy
+        import torch
+
+        Models = [client.model for client in self.clients]
+        global_dict = copy.deepcopy(Models[0].state_dict())
+
+        # Initialize global_dict to zeros
+        for key in global_dict:
+            global_dict[key] = torch.zeros_like(global_dict[key])
+
+        # Sum all local model parameters
+        for model in Models:
+            local_dict = model.state_dict()
+            for key in global_dict:
+                global_dict[key] += local_dict[key]
+
+        # Average the parameters
+        for key in global_dict:
+            global_dict[key] = global_dict[key] / len(Models)
+
+        # Create a new model and load the averaged state_dict
+        global_model = copy.deepcopy(Models[0])  # assumes all models share the same architecture
+        global_model.load_state_dict(global_dict)
+
+        return global_model
+
+    
     def zero_shot(self, data, FM, processor, tokenizer, proto=False, batch_size=16):
         
         processor.image_processor.do_rescale = False
