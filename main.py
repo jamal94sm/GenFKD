@@ -318,7 +318,7 @@ if __name__ == "__main__":
 
     # ===================== Dataset and Model Loading =====================
     Dataset, num_classes, name_classes = MyDatasets.load_data_from_Huggingface()
-    print("\n ]class names: \n", name_classes)
+    print("\n class names: \n", name_classes)
 
 
     # ===================== Data Distribution =====================
