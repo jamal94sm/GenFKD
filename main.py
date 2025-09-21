@@ -99,7 +99,7 @@ def main():
  
 
     # ===================== Zero-Shot Evaluation =====================
-    if "zero_shot" in args.setup: 
+    if "zero_shot" in args.setup or "open_vocab" in args.setup:
         zero_shot_logits = server.zero_shot(
             public_data["train"], 
             FM,
@@ -210,10 +210,71 @@ def main():
             general_knowledge = server.get_general_knowledge()
             continue
         #==================================================================
+        elif 'open_vocab' in args.setup:
+
+            client = clients[0]
+            client.local_distillation(
+                client.public_data,
+                zero_shot_logits, 
+                proto = True if "proto" in args.setup else False,
+                )
+            client.test_Acc.append(MyUtils.Evaluate(client.model,  client.data["test"]["image"], client.data["test"]["label"], device)[0])
+        #==================================================================
+        elif 'fl_vocab' in args.setup:
+            if round == 0:
+                old_local_epochs = args.local_epochs
+                args.local_epochs = args.rounds
+                for client in clients:
+                    client.local_distillation(
+                        client.public_data,
+                        zero_shot_logits, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                args.local_epchs = old_local_epochs
+
+            for client in clients:
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+            continue
+        #==================================================================
+        elif 'sidclip' in args.setup:
+            if round == 0:
+                old_local_epochs = args.local_epochs
+                args.local_epochs = args.rounds
+                for client in clients:
+                    teacher_model = MyModels.clip_plus_linear_head(FM, processor, tokenizer, num_classes, name_classes, args.device).to(args.device)
+                    few_shot_data = MyUtils.get_few_shot_subset(client.data, num_shots=5)
+                    optimizer = torch.optim.Adam(teacher_model.parameters(), lr=args.local_learning_rate)
+                    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=0)
+                    loss_fn = torch.nn.functional.cross_entropy
+                    MyUtils.Train(teacher_model, 
+                                few_shot_data, 
+                                optimizer, 
+                                scheduler, 
+                                loss_fn,  
+                                batch_size = 8, 
+                                epochs = 20,
+                                device = args.device,
+                                debug = False)
+                                
+                    teacher_logits = teacher_model.inference(client.public_data)
+                    client.local_distillation(
+                        client.public_data,
+                        teacher_logits, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                    
+                    del teacher_model
+                    torch.cuda.empty_cache()
 
 
+                args.local_epchs = old_local_epochs
 
-
+            for client in clients:
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+            continue
+            
 
 
 
@@ -247,13 +308,15 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        {"setup": "local"},
-        #{"setup": "proposed_yn"},
-        #{"setup": "fedmd_synth_yn"},
-        {"setup": "fedmd_yn"},
+        #{"setup": "local"},
+        #{"setup": "fedavg"},
+        #{"setup": "fedmd_yn"},
         #{"setup": "zero_shot"},
-        {"setup": "fedavg"}
-                 
+        {"setup": "open_vocab"},
+        {"setup": "fl_vocab"},
+        #{"setup": "sidclip"},
+        #{"setup": "koala"},
+        #{"setup": "proposed_yn"}   
     ]
 
 
