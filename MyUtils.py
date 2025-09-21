@@ -10,6 +10,37 @@ import gc
 from torch.utils.data import DataLoader, TensorDataset
 
 
+
+
+##############################################################################################################
+
+from datasets import DatasetDict
+import random
+
+def get_few_shot_subset(dataset_dict, num_shots=5):
+    train_dataset = dataset_dict["train"]
+    label_to_indices = {}
+
+    # Group indices by label
+    for idx, label in enumerate(train_dataset["label"]):
+        label_to_indices.setdefault(label, []).append(idx)
+
+    # Sample up to num_shots examples per class
+    few_shot_indices = []
+    for label, indices in label_to_indices.items():
+        if len(indices) == 0:
+            continue
+        sampled = indices if len(indices) < num_shots else random.sample(indices, num_shots)
+        few_shot_indices.extend(sampled)
+
+    # Select the few-shot subset
+    few_shot_train = train_dataset.select(few_shot_indices)
+
+    # Return as DatasetDict
+    return DatasetDict({
+        "train": few_shot_train,
+        "test": None
+    })
 ##############################################################################################################
 ##############################################################################################################
 def Evaluate(model, images, labels, device, batch_size=64):
@@ -416,7 +447,7 @@ def run_in_parallel(clients):
     torch.cuda.synchronize()  
         
 
-
+'''
 ##############################################################################################################
 ##############################################################################################################
 import os
@@ -474,5 +505,47 @@ def load_synthetic_images(class_names, image_size, data_dir, max_per_class=100):
 
 ##############################################################################################################
 ##############################################################################################################
+'''
+import os
+from PIL import Image
+import torchvision.transforms as transforms
+import torch
+import numpy as np
+from datasets import Dataset, DatasetDict
 
+def load_synthetic_images(class_names, image_size, data_dir):
+    # Define transform to match CIFAR-10 format
+    transform = transforms.Compose([
+        transforms.Resize(tuple(image_size)),
+        transforms.ToTensor(),
+    ])
 
+    image_tensors = []
+    label_tensors = []
+
+    for filename in os.listdir(data_dir):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            for class_name in class_names:
+                if filename.startswith(class_name):
+                    label = class_names.index(class_name)
+                    image_path = os.path.join(data_dir, filename)
+                    image = Image.open(image_path).convert("RGB")
+                    tensor_image = transform(image)  
+                    image_tensors.append(tensor_image)
+                    label_tensors.append(label)
+                    break
+
+    train_images = torch.stack(image_tensors)  
+    train_labels = torch.tensor(label_tensors)
+
+    # Convert to NumPy arrays for Hugging Face compatibility
+    train_dataset = Dataset.from_dict({
+        "image": train_images,
+        "label": train_labels,
+    })
+    train_dataset.set_format("torch")
+
+    return DatasetDict({
+        "train": train_dataset,
+        "test": None
+    })
