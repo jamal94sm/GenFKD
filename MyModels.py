@@ -8,6 +8,56 @@ from Config import args
 import pandas as pd
 
 
+##############################################################################################################
+##############################################################################################################
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from datasets import DatasetDict
+
+class clip_plus_linear_head(nn.Module):
+    def __init__(self, FM, processor, tokenizer, num_classes, name_classes, device):
+        super(clip_plus_linear_head, self).__init__()
+        self.FM = FM.to(device)
+        self.tokenizer = tokenizer
+        self.processor = processor
+        self.num_classes = num_classes
+        self.name_classes = name_classes
+        self.device = device
+
+        for p in self.FM.parameters():
+            p.requires_grad = False
+
+        self.logit_scale = nn.Parameter(torch.tensor(self.FM.config.logit_scale_init_value).to(device))
+
+        embedding_dim = self.FM.get_image_features(torch.randn(1, 3, 224, 224).to(device)).shape[-1]
+        self.linear_head = nn.Linear(embedding_dim, num_classes).to(device)
+
+    def forward(self, x):
+        inputs = self.processor(images=x, return_tensors="pt").to(self.device)
+        image_features = self.FM.get_image_features(**inputs)
+        image_features = F.normalize(image_features, dim=-1)
+        logits = self.linear_head(image_features) * self.logit_scale.exp()
+        return logits
+
+    def inference(self, dataset_dict: DatasetDict):
+        self.eval()
+        logits_list = []
+
+        for sample in dataset_dict["train"]:
+            image = sample["image"]
+            inputs = self.processor(images=image, return_tensors="pt").to(self.device)
+
+            with torch.no_grad():
+                image_features = self.FM.get_image_features(**inputs)
+                image_features = F.normalize(image_features, dim=-1)
+                logits = self.linear_head(image_features) * self.logit_scale.exp()
+
+            logits_list.append(logits.squeeze(0).cpu())  # remove batch dim and move to CPU
+
+        return torch.stack(logits_list)  # shape: [num_samples, num_classes]
+
 
 
 
