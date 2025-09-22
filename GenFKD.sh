@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=a100:1       # Narval: a100, a100_4g.20g; Cedar: p100, p100l, v100l, a40
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=4            # adjust (e.g., 8 or 16 if needed)
+#SBATCH --cpus-per-task=1            # adjust (e.g., 8 or 16 if needed)
 #SBATCH --mem=40G                    # memory per node
 #SBATCH --time=1:00:00               # job time limit (HH:MM:SS)
 #SBATCH --mail-user=jamal73sm@gmail.com
