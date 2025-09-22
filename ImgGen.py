@@ -27,22 +27,22 @@ clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 # -------------------------------
 # CIFAR-10 class names
 # -------------------------------
-cifar_classes = [
-    "airplane", "automobile", "bird", "cat", "deer",
-    "dog", "frog", "horse", "ship", "truck"
+classes = [
+    "0", "1", "2", "3", "4",
+    "5", "6", "7", "8", "9"
 ]
 
 # -------------------------------
 # Load JSON descriptions
 # -------------------------------
-json_path = "cifar10_descriptions.json"  # update path if needed
+json_path = "svhn_descriptions.json"  # update path if needed
 with open(json_path, "r") as f:
     descriptions = json.load(f)
 
 # -------------------------------
 # Prepare reference text embeddings
 # -------------------------------
-cls_template_prompts = [f"a photo of a {cls}" for cls in cifar_classes]
+cls_template_prompts = [f"a photo of digit {cls}" for cls in classes]
 
 with torch.no_grad():
     text_inputs = clip_processor(text=cls_template_prompts, return_tensors="pt", padding=True).to(device)
@@ -52,7 +52,7 @@ with torch.no_grad():
 # -------------------------------
 # Output path
 # -------------------------------
-output_path = "Synthetic_Image/CIFAR10/"
+output_path = "Synthetic_Image/SVHN/"
 os.makedirs(output_path, exist_ok=True)
 
 # -------------------------------
@@ -85,7 +85,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
 
         # Get top-1 prediction
-        top_class = cifar_classes[probs.argmax()]
+        top_class = classes[probs.argmax()]
         top_conf = float(probs.max())
         aligned = (top_class == expected_class)
         high_conf = (top_conf >= thresh)
@@ -106,7 +106,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
                 "expected_class": expected_class,
                 "predicted_class": top_class,
                 "confidence": top_conf,
-                "soft_labels": {cls: float(pr) for cls, pr in zip(cifar_classes, probs)},
+                "soft_labels": {cls: float(pr) for cls, pr in zip(classes, probs)},
                 "status": status
             })
             failed_prompts[idx] = prompt
@@ -118,7 +118,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             "expected_class": expected_class,
             "predicted_class": top_class,
             "confidence": top_conf,
-            "soft_labels": {cls: float(pr) for cls, pr in zip(cifar_classes, probs)},
+            "soft_labels": {cls: float(pr) for cls, pr in zip(classes, probs)},
             "status": status
         })
 
@@ -133,7 +133,7 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-for cls in cifar_classes:
+for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
     results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=0.95)
