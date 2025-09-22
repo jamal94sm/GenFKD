@@ -41,15 +41,13 @@ classes = [
 classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
 '''
 
-classes = [
-    "0", "1", "2", "3", "4",
-    "5", "6", "7", "8", "9"
-]
-output_path = "Synthetic_Image/SVHN/"
-json_path = "svhn_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a photo of digit {cls}" for cls in classes]
-gray_scale = False
-confident_value = 0.9
+
+classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
+output_path = "Synthetic_Image/Fashion/"
+json_path = "fashion_descriptions.json"  # update path if needed
+cls_template_prompts = [f"a gray scale photo of a {cls}" for cls in classes]
+gray_scale = True
+confident_value = 0.8
 
 # -------------------------------
 # Load JSON descriptions
