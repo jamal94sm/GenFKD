@@ -226,10 +226,23 @@ class Device():
         if proto:
             teacher_knowledge = MyUtils.extend_proto_outputs_to_labels(data, teacher_knowledge)
 
+        min_len = min(
+            len(data["train"]["image"]),
+            len(data["train"]["label"]),
+            len(teacher_knowledge)
+        )
+
+        extended_data = MyDatasets.ddf({
+            "student_model_input": data["train"]["image"][:min_len],
+            "student_model_output": data["train"]["label"][:min_len],
+            "teacher_knowledge": teacher_knowledge[:min_len]
+        })
+        '''
         extended_data = MyDatasets.ddf({"student_model_input": data["train"]["image"], 
                                         "student_model_output": data["train"]["label"], 
                                         "teacher_knowledge": teacher_knowledge}
                                       )
+        '''
         a, b, c = MyUtils.Distil(self.model, extended_data, self.data, self.optimizer, self.scheduler, self.loss_fn,
                                  args.local_batch_size, args.local_epochs, args.device, args.debug)
         
