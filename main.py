@@ -335,8 +335,8 @@ if __name__ == "__main__":
         #{"setup": "fedavg"},
         #{"setup": "fedmd_yn"},
         #{"setup": "zero_shot"},
-        {"setup": "open_vocab"},
-        {"setup": "koala"},
+        #{"setup": "open_vocab"},
+        #{"setup": "koala"},
         {"setup": "fl_vocab"},
         {"setup": "sidclip"},
         #{"setup": "proposed_yn"}   
