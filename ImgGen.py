@@ -71,7 +71,7 @@ os.makedirs(output_path, exist_ok=True)
 # -------------------------------
 # Generate + Infer + Save function
 # -------------------------------
-def generate_and_infer(prompts_list, expected_class, thresh=confident_value):
+def generate_and_infer(prompts_list, expected_class, thresh=0.7):
     results = []
     failed_descriptions = []
     failed_prompts = {}
@@ -154,7 +154,7 @@ saved_summary = {}
 for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
-    results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=0.95)
+    results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=confident_value)
     all_results[cls] = results
     all_failed[cls] = failed
     all_failed_prompts[cls] = failed_prompts
