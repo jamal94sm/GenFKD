@@ -49,7 +49,7 @@ output_path = "Synthetic_Image/SVHN/"
 json_path = "svhn_descriptions.json"  # update path if needed
 cls_template_prompts = [f"a photo of digit {cls}" for cls in classes]
 gray_scale = False
-
+confident_value = 0.9
 
 # -------------------------------
 # Load JSON descriptions
@@ -73,7 +73,7 @@ os.makedirs(output_path, exist_ok=True)
 # -------------------------------
 # Generate + Infer + Save function
 # -------------------------------
-def generate_and_infer(prompts_list, expected_class, thresh=0.95):
+def generate_and_infer(prompts_list, expected_class, thresh=confident_value):
     results = []
     failed_descriptions = []
     failed_prompts = {}
