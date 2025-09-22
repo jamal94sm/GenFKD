@@ -32,16 +32,18 @@ classes = [
     "0", "1", "2", "3", "4",
     "5", "6", "7", "8", "9"
 ]
-'''
+
 classes = [
     "AnnualCrop", "Forest", "HerbaceousVegetation", "Highway", "Industrial",
     "Pasture", "PermanentCrop", "Residential", "River", "SeaLake"
 ]
+'''
+classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
 
-output_path = "Synthetic_Image/EuroSAT/"
-json_path = "eurosat_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a photo of {cls} area" for cls in classes]
-
+output_path = "Synthetic_Image/Fashion/"
+json_path = "fashion_descriptions.json"  # update path if needed
+cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
+gray_scale = True
 
 
 # -------------------------------
@@ -102,9 +104,14 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.95):
             class_folder = os.path.join(output_path, expected_class)
             os.makedirs(class_folder, exist_ok=True)
             img_path = os.path.join(class_folder, f"{expected_class}_{idx}.png")
+        
+            if gray_scale:
+                image = image.convert("L")  # convert to grayscale (L mode = 8-bit pixels)
+            
             image.save(img_path)
             saved_count += 1
             status = f"✅ Aligned & confident (confidence {top_conf:.2f}) - Saved to {img_path}"
+
         else:
             reason = "not aligned" if not aligned else f"low confidence {top_conf:.2f}"
             status = f"❌ Failed. Reason: {reason}. Prompt: {prompt} -> Predicted '{top_class}'"
