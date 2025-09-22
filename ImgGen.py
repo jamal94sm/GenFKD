@@ -42,7 +42,7 @@ classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt"
 
 output_path = "Synthetic_Image/Fashion/"
 json_path = "fashion_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
+cls_template_prompts = [f"a gray scale photo of a {cls}" for cls in classes]
 gray_scale = True
 
 
