@@ -196,6 +196,30 @@ def main():
                 print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
             continue
         #==================================================================
+        elif "proposed_real" in args.setup:
+            for client in clients:
+                
+                if round > 0 :  
+                    client.local_distillation(
+                        public_data_2,
+                        general_knowledge, 
+                        proto = True if "proto" in args.setup else False,
+                        )
+                
+                client.local_training()
+                print(f'Client: {client.ID:<10} train_acc: {client.Acc[-1]:<8.2f} test_acc: {client.test_Acc[-1]:<8.2f}')
+                
+                client.cal_logits( 
+                    public_data_2,
+                    proto = True if "proto" in args.setup else False,
+                    sifting = True if "sift" in args.setup else False,
+                    )
+            agg = server.aggregation()
+            print("-" * 20, "Server Distillation Phase")
+            server.distill_generator(server.public_data, agg)
+            general_knowledge = server.get_general_knowledge()
+            continue
+        #==================================================================
         elif "proposed" in args.setup:
             for client in clients:
                 
@@ -268,7 +292,8 @@ def main():
                             batch_size = 8, 
                             epochs = 20,
                             device = args.device,
-                            debug = False)   
+                            debug = False, 
+                            eval = False)   
                 teacher_logits = teacher_model.inference(client.public_data)
 
 
@@ -342,11 +367,12 @@ if __name__ == "__main__":
         #{"setup": "fedavg"},
         #{"setup": "fedmd_yn"},
         #{"setup": "zero_shot"},
-        {"setup": "open_vocab"},
-        {"setup": "koala"},
-        {"setup": "fl_vocab"},
-        {"setup": "sidclip"},
-        #{"setup": "proposed_yn"}   
+        #{"setup": "open_vocab"},
+        #{"setup": "koala"},
+        #{"setup": "fl_vocab"},
+        {"setup": "proposed_real_yn"},
+        {"setup": "proposed_yn"},
+        {"setup": "sidclip"}
     ]
 
 
