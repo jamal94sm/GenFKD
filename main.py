@@ -372,7 +372,7 @@ if __name__ == "__main__":
         {"setup": "koala"},
         {"setup": "fl_vocab"},
         {"setup": "proposed_real_yn"},
-        #{"setup": "proposed_yn"},
+        {"setup": "proposed_yn"},
         {"setup": "sidclip"}
     ]
 
