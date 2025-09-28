@@ -365,14 +365,14 @@ if __name__ == "__main__":
     configurations = [
         #{"setup": "local"},
         {"setup": "fedavg"},
+        {"setup": "proposed_yn"},
+        {"setup": "proposed_real_yn"},
         {"setup": "fedmd_yn"},
         #{"setup": "fedmd_synth_yn"},
         #{"setup": "zero_shot"},
         #{"setup": "open_vocab"},
         #{"setup": "koala"},
         #{"setup": "fl_vocab"},
-        {"setup": "proposed_real_yn"},
-        {"setup": "proposed_yn"},
         #{"setup": "sidclip"}
     ]
 
