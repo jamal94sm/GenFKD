@@ -33,4 +33,10 @@ source /home/shahab33/fed2p/bin/activate #Narval
 #python main.py --local_model_name "ResNet18" --dataset "SVHN" --num_train_samples 11000 --alpha_dirichlet 10 --rounds 30 --num_synth_img_per_class 100 --output_name "_ResNet18_10K_alpha10_synth100_T4"
 #python main.py --local_model_name "ResNet18" --dataset "cifar10" --num_train_samples 33000 --alpha_dirichlet 10 --rounds 50 --num_synth_img_per_class 300 --output_name "_RN18_30K_alpha10_synth300_"
 
+
+export HF_HOME=/home/shahab33/scratch/huggingface_cache
+export TRANSFORMERS_CACHE=$HF_HOME
+export DIFFUSERS_CACHE=$HF_HOME
+export HUGGINGFACE_HUB_CACHE=$HF_HOME
+
 python ImgGen.py
