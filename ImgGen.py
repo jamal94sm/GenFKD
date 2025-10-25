@@ -20,6 +20,36 @@ if device == "cpu":
     pipe.enable_attention_slicing()
 '''
 
+
+s
+
+'''
+from diffusers import StableDiffusionPipeline
+import torch
+from PIL import Image
+import os
+import json
+
+# -------------------------------
+# Load Medical X-ray Stable Diffusion
+# -------------------------------
+
+model_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    model_id,
+    cache_dir=cache_dir,         # ✅ ensure caching in scratch
+    use_auth_token=True,         # ✅ use your login token
+    torch_dtype=torch.float16 if device == "cuda" else torch.float32
+)
+
+pipe = pipe.to(device)
+if device == "cpu":
+    pipe.enable_attention_slicing()
+
+'''
+
 # Define cache location
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
