@@ -65,16 +65,13 @@ classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt"
 '''
 
 
-classes = [
-    "AnnualCrop", "Forest", "HerbaceousVegetation", "Highway", "Industrial",
-    "Pasture", "PermanentCrop", "Residential", "River", "SeaLake"
-]
+classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
 
-output_path = "Synthetic_Image/EuroSAT/"
-json_path = "eurosat_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a satellite photo of a {cls} area" for cls in classes]
-gray_scale = False
-confident_value = 0.5
+output_path = "Synthetic_Image/Fashion/"
+json_path = "fashion_descriptions.json"  # update path if needed
+cls_template_prompts = [f"a gray-scale photo of a {cls}" for cls in classes]
+gray_scale = True
+confident_value = 0.7
 num_inference_steps = 20
 
 # -------------------------------
@@ -179,7 +176,7 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-for cls in ["HerbaceousVegetation", "PermanentCrop"]:
+for cls in ["T-shirt", "Shirt"]:
 #for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
