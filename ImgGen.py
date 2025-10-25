@@ -71,8 +71,8 @@ output_path = "Synthetic_Image/Fashion/"
 json_path = "fashion_descriptions.json"  # update path if needed
 cls_template_prompts = [f"a gray-scale photo of a {cls}" for cls in classes]
 gray_scale = True
-confident_value = 0.7
-num_inference_steps = 40
+confident_value = 0.5
+num_inference_steps = 20
 
 # -------------------------------
 # Load JSON descriptions
