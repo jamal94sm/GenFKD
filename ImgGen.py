@@ -31,7 +31,7 @@ import os
 import json
 
 # -------------------------------
-# Load Medical X-ray Stable Diffusion
+# Load Medical X-ray Stable Diffusion (X-rays, CTs, and MRIs)
 # -------------------------------
 
 model_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
