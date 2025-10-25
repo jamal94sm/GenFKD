@@ -176,7 +176,7 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-for cls in ["T-shirt", "Shirt"]:
+for cls in ["T-shirt"]:
 #for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
