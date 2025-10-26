@@ -22,16 +22,16 @@ if device == "cpu":
 
 
 
-'''
-from diffusers import StableDiffusionPipeline
-import torch
-from PIL import Image
-import os
-import json
 
 # -------------------------------
 # Load Medical X-ray Stable Diffusion (X-rays, CTs, and MRIs)
 # -------------------------------
+# Define cache location
+cache_dir = "/home/shahab33/scratch/huggingface_cache"
+os.environ["HF_HOME"] = cache_dir
+os.environ["TRANSFORMERS_CACHE"] = cache_dir
+os.environ["DIFFUSERS_CACHE"] = cache_dir
+os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
 
 model_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -47,8 +47,8 @@ pipe = pipe.to(device)
 if device == "cpu":
     pipe.enable_attention_slicing()
 
-'''
 
+'''
 # Define cache location
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
@@ -69,7 +69,9 @@ pipe = StableDiffusionPipeline.from_pretrained(
 pipe = pipe.to(device)
 if device == "cpu":
     pipe.enable_attention_slicing()
-    
+
+
+'''    
 # -------------------------------
 # Load Hugging Face CLIP model
 # -------------------------------
@@ -91,21 +93,20 @@ classes = [
 ]
 
 classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
+
+classes = ["Normal", "Pneumonia"]
 '''
 
 
-classes = [
-    "AnnualCrop", "Forest", "HerbaceousVegetation", "Highway", "Industrial",
-    "Pasture", "PermanentCrop", "Residential", "River", "SeaLake"
-]
+classes = ["Normal", "Pneumonia"]
 
 
-output_path = "Synthetic_Image/EuroSAT/"
-json_path = "eurosat_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a photo of a {cls} area" for cls in classes]
-gray_scale = False
-confident_value = 0.5
-num_inference_steps = 50
+output_path = "Synthetic_Image/Pneumonia/"
+json_path = "pneumonia_descriptions.json"  # update path if needed
+cls_template_prompts = [f"a gray-scale photo of a {cls} chest" for cls in classes]
+gray_scale = True
+confident_value = 0.8
+num_inference_steps = 20
 
 # -------------------------------
 # Load JSON descriptions
@@ -209,7 +210,7 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-for cls in ["HerbaceousVegetation", "PermanentCrop"]:
+for cls in classes:
 #for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
