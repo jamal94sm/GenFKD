@@ -21,7 +21,6 @@ if device == "cpu":
 '''
 
 
-s
 
 '''
 from diffusers import StableDiffusionPipeline
