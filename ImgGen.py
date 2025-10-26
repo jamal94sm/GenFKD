@@ -64,16 +64,25 @@ if device == "cpu":
 #clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
 import open_clip
+import torch
+from PIL import Image
 
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Paths
 model_path = "/home/shahab33/scratch/huggingface_cache/whyxrayclip"
-model, _, preprocess = open_clip.create_model_and_transforms(
+model_name = "ViT-L-14"
+
+# Load model config and weights
+model = open_clip.create_model(
+    model_name=model_name,
     pretrained=model_path,
-    model_name="ViT-L-14"
-)
-tokenizer = open_clip.get_tokenizer("ViT-L-14")
+    precision="fp16" if device == "cuda" else "fp32"
+).to(device)
 
-
-print("medical CLIP is loaded")
+# Load tokenizer and preprocessing
+tokenizer = open_clip.get_tokenizer(model_name)
+_, _, preprocess = open_clip.create_model_and_transforms(model_name=model_name)
 
 # -------------------------------
 # class names
