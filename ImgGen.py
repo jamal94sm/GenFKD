@@ -109,6 +109,7 @@ num_inference_steps = 20
 with open(json_path, "r") as f:
     descriptions = json.load(f)
 
+'''
 # -------------------------------
 # Prepare reference text embeddings
 # -------------------------------
@@ -116,6 +117,7 @@ with torch.no_grad():
     text_inputs = clip_processor(text=cls_template_prompts, return_tensors="pt", padding=True).to(device)
     text_features = clip_model.get_text_features(**text_inputs)
     text_features /= text_features.norm(dim=-1, keepdim=True)
+'''
 
 # -------------------------------
 # Output path
