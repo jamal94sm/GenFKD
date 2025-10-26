@@ -68,13 +68,10 @@ import torch
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model_path = "/home/shahab33/scratch/huggingface_cache/whyxrayclip"
-
-# Load model from local path
+# Load model from specific file path
 model = open_clip.create_model(
     model_name="ViT-L-14",
-    pretrained="model",  # This refers to 'model.pt' in the directory
-    cache_dir=model_path,
+    pretrained="/home/shahab33/scratch/huggingface_cache/whyxrayclip/model.pt",
     precision="fp16" if device == "cuda" else "fp32"
 ).to(device)
 
