@@ -29,6 +29,11 @@ if device == "cpu":
 from diffusers import DiffusionPipeline
 
 # Define cache location
+import os
+import torch
+from diffusers import DiffusionPipeline
+
+# Set cache directory
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
 os.environ["TRANSFORMERS_CACHE"] = cache_dir
@@ -36,21 +41,18 @@ os.environ["DIFFUSERS_CACHE"] = cache_dir
 os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
 
 model_id = "CompVis/stable-diffusion-v1-4"
-lora_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
+lora_local_path = os.path.join(cache_dir, "Osama03--Medical-X-ray-image-generation-stable-diffusion")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load base model into cache
+# Load base model
 pipe = DiffusionPipeline.from_pretrained(
     model_id,
     cache_dir=cache_dir,
     torch_dtype=torch.float16 if device == "cuda" else torch.float32
 ).to(device)
 
-# Load LoRA weights into cache
-pipe.load_lora_weights(
-    lora_id,
-    cache_dir=cache_dir
-)
+# Load LoRA weights from local path
+pipe.load_lora_weights(lora_local_path)
 
 '''
 # Define cache location
