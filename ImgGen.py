@@ -71,7 +71,7 @@ model = model.to(device)
 model.eval()
 tokenizer = open_clip.get_tokenizer("ViT-L-14")
 
-
+print("medical CLIP is loaded")
 
 # -------------------------------
 # class names
