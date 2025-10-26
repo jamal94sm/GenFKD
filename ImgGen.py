@@ -65,11 +65,13 @@ if device == "cpu":
 
 import open_clip
 
-# Load WhyXrayCLIP model
-model, _, preprocess = open_clip.create_model_and_transforms("hf-hub:yyupenn/whyxrayclip")
-model = model.to(device)
-model.eval()
+model_path = "/home/shahab33/scratch/huggingface_cache/whyxrayclip"
+model, _, preprocess = open_clip.create_model_and_transforms(
+    pretrained=model_path,
+    model_name="ViT-L-14"
+)
 tokenizer = open_clip.get_tokenizer("ViT-L-14")
+
 
 print("medical CLIP is loaded")
 
