@@ -65,24 +65,22 @@ if device == "cpu":
 
 import open_clip
 import torch
-from PIL import Image
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Paths
 model_path = "/home/shahab33/scratch/huggingface_cache/whyxrayclip"
-model_name = "ViT-L-14"
 
-# Load model config and weights
+# Load model from local path
 model = open_clip.create_model(
-    model_name=model_name,
-    pretrained=model_path,
+    model_name="ViT-L-14",
+    pretrained="model",  # This refers to 'model.pt' in the directory
+    cache_dir=model_path,
     precision="fp16" if device == "cuda" else "fp32"
 ).to(device)
 
 # Load tokenizer and preprocessing
-tokenizer = open_clip.get_tokenizer(model_name)
-_, _, preprocess = open_clip.create_model_and_transforms(model_name=model_name)
+tokenizer = open_clip.get_tokenizer("ViT-L-14")
+_, _, preprocess = open_clip.create_model_and_transforms(model_name="ViT-L-14")
 
 # -------------------------------
 # class names
