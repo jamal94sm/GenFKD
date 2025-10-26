@@ -26,6 +26,8 @@ if device == "cpu":
 # -------------------------------
 # Load Medical X-ray Stable Diffusion (X-rays, CTs, and MRIs)
 # -------------------------------
+from diffusers import DiffusionPipeline
+
 # Define cache location
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
@@ -33,20 +35,22 @@ os.environ["TRANSFORMERS_CACHE"] = cache_dir
 os.environ["DIFFUSERS_CACHE"] = cache_dir
 os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
 
-model_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
+model_id = "CompVis/stable-diffusion-v1-4"
+lora_id = "Osama03/Medical-X-ray-image-generation-stable-diffusion"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-pipe = StableDiffusionPipeline.from_pretrained(
+# Load base model into cache
+pipe = DiffusionPipeline.from_pretrained(
     model_id,
-    cache_dir=cache_dir,         # ✅ ensure caching in scratch
-    use_auth_token=True,         # ✅ use your login token
+    cache_dir=cache_dir,
     torch_dtype=torch.float16 if device == "cuda" else torch.float32
+).to(device)
+
+# Load LoRA weights into cache
+pipe.load_lora_weights(
+    lora_id,
+    cache_dir=cache_dir
 )
-
-pipe = pipe.to(device)
-if device == "cpu":
-    pipe.enable_attention_slicing()
-
 
 '''
 # Define cache location
