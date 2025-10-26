@@ -5,32 +5,11 @@ from PIL import Image
 import os
 import json
 
-# -------------------------------
-# Load Stable Diffusion
-# -------------------------------
-'''
-model_id = "CompVis/stable-diffusion-v1-4"
-device = "cuda" if torch.cuda.is_available() else "cpu"
-pipe = StableDiffusionPipeline.from_pretrained(
-    model_id,
-    torch_dtype=torch.float32 if device=="cpu" else torch.float16
-)
-pipe = pipe.to(device)
-if device == "cpu":
-    pipe.enable_attention_slicing()
-'''
-
-
 
 
 # -------------------------------
 # Load Medical X-ray Stable Diffusion (X-rays, CTs, and MRIs)
 # -------------------------------
-from diffusers import DiffusionPipeline
-
-# Define cache location
-import os
-import torch
 from diffusers import DiffusionPipeline
 
 # Set cache directory
@@ -81,8 +60,18 @@ if device == "cpu":
 # -------------------------------
 # Load Hugging Face CLIP model
 # -------------------------------
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+#clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+#clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+
+import open_clip
+
+# Load WhyXrayCLIP model
+model, _, preprocess = open_clip.create_model_and_transforms("hf-hub:yyupenn/whyxrayclip")
+model = model.to(device)
+model.eval()
+tokenizer = open_clip.get_tokenizer("ViT-L-14")
+
+
 
 # -------------------------------
 # class names
@@ -149,6 +138,9 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.7):
             prompt, guidance_scale=7.5, num_inference_steps=num_inference_steps, generator=generator
         ).images[0]
 
+
+        
+        '''
         # CLIP inference
         inputs = clip_processor(
             text=cls_template_prompts,
@@ -161,7 +153,22 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.7):
             outputs = clip_model(**inputs)
             logits_per_image = outputs.logits_per_image  # [1, num_classes]
             probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
+'''
+        image_input = preprocess(image).unsqueeze(0).to(device)
+        text_input = tokenizer(cls_template_prompts)
+        
+        with torch.no_grad(), torch.cuda.amp.autocast():
+            image_features = model.encode_image(image_input)
+            text_features = model.encode_text(text_input)
+        
+        image_features /= image_features.norm(dim=-1, keepdim=True)
+        text_features /= text_features.norm(dim=-1, keepdim=True)
+        
+        probs = (100.0 * image_features @ text_features.T).softmax(dim=-1).cpu().numpy()[0]
 
+
+
+        
         # Get top-1 prediction
         top_class = classes[probs.argmax()]
         top_conf = float(probs.max())
