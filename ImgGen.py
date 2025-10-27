@@ -163,9 +163,15 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.7):
             probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
 '''
         image_input = preprocess(image).unsqueeze(0).to(device)
+
+        # Tokenize and move text input to device
         text_input = tokenizer(cls_template_prompts)
+        if isinstance(text_input, dict):
+            text_input = {k: v.to(device) for k, v in text_input.items()}
+        else:
+            text_input = text_input.to(device)
         
-        with torch.no_grad(), torch.cuda.amp.autocast():
+        with torch.no_grad(), torch.cuda.amp.autocast(enabled=(device == "cuda")):
             image_features = model.encode_image(image_input)
             text_features = model.encode_text(text_input)
         
