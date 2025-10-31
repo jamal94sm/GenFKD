@@ -53,54 +53,60 @@ def load_data_from_Huggingface():
     elif args.dataset in ["eurosat", "EuroSAT", "EUROSAT"]:
         import torchvision.transforms as transforms
         from PIL import Image
+        from datasets import DatasetDict
     
-        # 1) Load official EuroSAT (RGB) — no remote code execution required
-        #    Returns a DatasetDict with a single "train" split containing all samples.
-        full_dataset = datasets.load_dataset("eurosat", "rgb")["train"]
+        # 1) Load the TorchGeo EuroSAT dataset from the HF Hub (has train/val/test)
+        #    https://huggingface.co/datasets/torchgeo/eurosat
+        full = datasets.load_dataset("torchgeo/eurosat")  # returns DatasetDict with 'train','validation','test'
     
-        # Get canonical class names from the dataset features
-        name_classes = full_dataset.features["label"].names
+        # We'll use 'train' as train and 'test' as test. (You can merge validation into train if you wish.)
+        train_ds = full["train"]
+        test_ds  = full["test"]
     
-        # 2) Build a NON-overlapping random split using your desired sizes
-        total = full_dataset.num_rows
-        num_train = min(getattr(args, "num_train_samples", total // 2), total)
-        num_test  = min(getattr(args, "num_test_samples", total - num_train), total - num_train)
+        # Class names are provided by features["label"].names
+        name_classes = train_ds.features["label"].names
     
-        # One permutation -> first N for train, next M for test (no leakage)
-        perm = np.random.permutation(total).tolist()
-        train_indices = perm[:num_train]
-        test_indices  = perm[num_train:num_train + num_test]
+        # 2) If you want to sub-sample exactly N train / M test without overlap:
+        def take_random_indices(n_total, n_take):
+            n_take = min(n_take, n_total)
+            return np.random.permutation(n_total)[:n_take].tolist()
     
-        train_dataset = full_dataset.select(train_indices)
-        test_dataset  = full_dataset.select(test_indices)
+        n_train = getattr(args, "num_train_samples", train_ds.num_rows)
+        n_test  = getattr(args, "num_test_samples",  test_ds .num_rows)
     
-        # 3) Define transforms (keep yours)
+        train_ds = train_ds.select(take_random_indices(train_ds.num_rows, n_train))
+        test_ds  = test_ds .select(take_random_indices(test_ds .num_rows, n_test))
+    
+        # 3) Transforms
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
-            transforms.ToTensor(),  # values in [0,1]
+            transforms.ToTensor(),     # -> [0,1]
+            # Optional (for ImageNet-pretrained backbones):
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            #                      std =[0.229, 0.224, 0.225]),
         ])
     
-        # 4) Apply transforms lazily via .map (handles PIL.Image inputs from the dataset)
         def apply_transform(example):
-            # example["image"] is already a PIL.Image from the official EuroSAT loader
             img = example["image"]
-            if not isinstance(img, Image.Image):  # extra safety
+            # HF 'image' feature is PIL.Image; convert if needed
+            if not isinstance(img, Image.Image):
                 img = Image.open(img).convert("RGB")
             example["image"] = transform(img)
             return example
     
-        train_dataset = train_dataset.map(apply_transform)
-        test_dataset  = test_dataset.map(apply_transform)
+        train_ds = train_ds.map(apply_transform)
+        test_ds  = test_ds .map(apply_transform)
     
-        # 5) Wrap back into a DatasetDict and set PyTorch format
-        dataset = datasets.DatasetDict({
-            "train": ddf(train_dataset.to_dict()),
-            "test":  ddf(test_dataset.to_dict())
+        # 4) Pack back into your expected structure and set PyTorch format
+        dataset = DatasetDict({
+            "train": ddf(train_ds.to_dict()),
+            "test":  ddf(test_ds .to_dict())
         })
         dataset.set_format("torch", columns=["image", "label"])
-
+    
         return dataset, len(name_classes), name_classes
 
+    
     elif args.dataset in ["SVHN", "svhn"]:
         # Load SVHN dataset with config name
         loaded_dataset = datasets.load_dataset("svhn", "cropped_digits", split=["train", "test"])
