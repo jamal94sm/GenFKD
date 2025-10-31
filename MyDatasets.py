@@ -51,61 +51,149 @@ def load_data_from_Huggingface():
 
 
     elif args.dataset in ["eurosat", "EuroSAT", "EUROSAT"]:
-        import torchvision.transforms as transforms
+        import os
+        import numpy as np
         from PIL import Image
+        import torchvision.transforms as transforms
         from datasets import DatasetDict
     
-        # 1) Load the TorchGeo EuroSAT dataset from the HF Hub (has train/val/test)
-        #    https://huggingface.co/datasets/torchgeo/eurosat
-        full = datasets.load_dataset("torchgeo/eurosat")  # returns DatasetDict with 'train','validation','test'
+        # ---- helper: robust column detection and preprocessing ----
+        def _find_label_col(ds):
+            candidates = ["label", "labels", "class", "category", "target", "y"]
+            for c in candidates:
+                if c in ds.column_names:
+                    return c
+            return None
     
-        # We'll use 'train' as train and 'test' as test. (You can merge validation into train if you wish.)
-        train_ds = full["train"]
-        test_ds  = full["test"]
+        def _get_class_names(ds, label_col):
+            # If it's a ClassLabel feature, prefer that (stable ordering)
+            feat = ds.features.get(label_col, None)
+            if feat is not None and getattr(feat, "names", None):
+                return list(feat.names)
+            # Otherwise, build deterministic names from unique values
+            uniq = sorted(list(set(ds[label_col])))
+            # If labels are strings, use them; if ints, sort numerically
+            return [str(u) for u in uniq]
     
-        # Class names are provided by features["label"].names
-        name_classes = train_ds.features["label"].names
+        def _ensure_label_int(example, label_col, name_classes):
+            # map string labels to integer indices if needed
+            val = example[label_col]
+            if isinstance(val, str):
+                example["label"] = name_classes.index(val)
+            else:
+                # already numeric: rename to 'label' for consistency
+                example["label"] = int(val)
+            return example
     
-        # 2) If you want to sub-sample exactly N train / M test without overlap:
-        def take_random_indices(n_total, n_take):
-            n_take = min(n_take, n_total)
-            return np.random.permutation(n_total)[:n_take].tolist()
-    
-        n_train = getattr(args, "num_train_samples", train_ds.num_rows)
-        n_test  = getattr(args, "num_test_samples",  test_ds .num_rows)
-    
-        train_ds = train_ds.select(take_random_indices(train_ds.num_rows, n_train))
-        test_ds  = test_ds .select(take_random_indices(test_ds .num_rows, n_test))
-    
-        # 3) Transforms
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),     # -> [0,1]
-            # Optional (for ImageNet-pretrained backbones):
-            # transforms.Normalize(mean=[0.485, 0.456, 0.406],
-            #                      std =[0.229, 0.224, 0.225]),
-        ])
-    
-        def apply_transform(example):
-            img = example["image"]
-            # HF 'image' feature is PIL.Image; convert if needed
+        def _to_tensor_224(example, image_col):
+            img = example[image_col]
             if not isinstance(img, Image.Image):
+                # Some datasets store file paths rather than Image objects
                 img = Image.open(img).convert("RGB")
             example["image"] = transform(img)
             return example
     
-        train_ds = train_ds.map(apply_transform)
-        test_ds  = test_ds .map(apply_transform)
+        # your transforms
+        transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),          # -> [0,1]
+            # Optional for ImageNet-pretrained models:
+            # transforms.Normalize(mean=[0.485, 0.456, 0.406],
+            #                      std =[0.229, 0.224, 0.225]),
+        ])
     
-        # 4) Pack back into your expected structure and set PyTorch format
+        # ---------------- Option A: Hugging Face Hub (torchgeo/eurosat) ----------------
+        try:
+            full = datasets.load_dataset("torchgeo/eurosat")  # has 'train','validation','test'
+            # choose splits (train/test); you can merge validation into train if you prefer
+            train_ds = full["train"]
+            test_ds  = full["test"]
+    
+            # detect column names
+            label_col = _find_label_col(train_ds)
+            image_col = "image" if "image" in train_ds.column_names else None
+            if label_col is None or image_col is None:
+                raise KeyError("Expected columns not found in torchgeo/eurosat")
+    
+            # derive class names
+            name_classes = _get_class_names(train_ds, label_col)
+    
+            # optional sub-sampling without overlap
+            def take_random_indices(n_total, n_take):
+                n_take = min(n_take, n_total)
+                return np.random.permutation(n_total)[:n_take].tolist()
+    
+            n_train = getattr(args, "num_train_samples", train_ds.num_rows)
+            n_test  = getattr(args, "num_test_samples",  test_ds.num_rows)
+            train_ds = train_ds.select(take_random_indices(train_ds.num_rows, n_train))
+            test_ds  = test_ds.select(take_random_indices(test_ds.num_rows,  n_test))
+    
+            # unify columns: convert/rename labels to 'label', images to tensor
+            train_ds = train_ds.map(lambda ex: _ensure_label_int(ex, label_col, name_classes))
+            test_ds  = test_ds.map(lambda ex: _ensure_label_int(ex, label_col, name_classes))
+    
+            train_ds = train_ds.map(lambda ex: _to_tensor_224(ex, image_col))
+            test_ds  = test_ds.map(lambda ex: _to_tensor_224(ex, image_col))
+    
+            # keep only the two columns we need
+            keep_cols = ["image", "label"]
+            train_ds = train_ds.remove_columns([c for c in train_ds.column_names if c not in keep_cols])
+            test_ds  = test_ds.remove_columns([c for c in test_ds.column_names  if c not in keep_cols])
+    
+            dataset = DatasetDict({
+                "train": ddf(train_ds.to_dict()),
+                "test":  ddf(test_ds.to_dict())
+            })
+            dataset.set_format("torch", columns=["image", "label"])
+    
+            return dataset, len(name_classes), name_classes
+    
+        except Exception as e:
+            print(f"[EuroSAT] Falling back to Torchvision route due to: {e}")
+    
+        # --------------- Option B: Torchvision downloader + HF imagefolder ---------------
+        # This path is reliable and avoids remote code; Torchvision downloads RGB archive
+        from torchvision.datasets import EuroSAT as TV_EuroSAT
+    
+        root = getattr(args, "data_root", "./data")  # set your cache dir if you want
+        tv_ds = TV_EuroSAT(root=root, download=True)  # downloads to root/eurosat/2750/
+        eurosat_dir = os.path.join(root, "eurosat", "2750")
+    
+        # Read the folder with Hugging Face `imagefolder`
+        full = datasets.load_dataset("imagefolder", data_dir=eurosat_dir)  # {'train': Dataset}
+    
+        # class names from folder names (stable ordering)
+        name_classes = full["train"].features["label"].names
+    
+        # create non-overlapping split according to args
+        total = full["train"].num_rows
+        n_train = min(getattr(args, "num_train_samples", total // 2), total)
+        n_test  = min(getattr(args, "num_test_samples",  total - n_train), total - n_train)
+        perm = np.random.permutation(total).tolist()
+        train_idx = perm[:n_train]
+        test_idx  = perm[n_train:n_train + n_test]
+    
+        train_ds = full["train"].select(train_idx)
+        test_ds  = full["train"].select(test_idx)
+    
+        # apply transform
+        def apply_transform(ex):
+            img = ex["image"]
+            if not isinstance(img, Image.Image):
+                img = Image.open(img).convert("RGB")
+            ex["image"] = transform(img)
+            return ex
+    
+        train_ds = train_ds.map(apply_transform)
+        test_ds  = test_ds.map(apply_transform)
+    
         dataset = DatasetDict({
             "train": ddf(train_ds.to_dict()),
-            "test":  ddf(test_ds .to_dict())
+            "test":  ddf(test_ds.to_dict())
         })
         dataset.set_format("torch", columns=["image", "label"])
     
         return dataset, len(name_classes), name_classes
-
     
     elif args.dataset in ["SVHN", "svhn"]:
         # Load SVHN dataset with config name
