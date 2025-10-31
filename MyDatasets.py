@@ -51,60 +51,54 @@ def load_data_from_Huggingface():
 
 
     elif args.dataset in ["eurosat", "EuroSAT", "EUROSAT"]:
-        from datasets import ClassLabel
-        from PIL import Image
         import torchvision.transforms as transforms
-
-        # Load full dataset
-        full_dataset = datasets.load_dataset("mikewang/EuroSAT")["train"]
-
-        # Rename columns
-        full_dataset = full_dataset.rename_column("image_path", "image")
-        full_dataset = full_dataset.rename_column("class", "label")
-
-        # Shuffle and select indices
-        train_indices = shuffling(full_dataset.num_rows, args.num_train_samples)
-        test_indices = shuffling(full_dataset.num_rows, args.num_test_samples)
-
-        # Select subsets
+        from PIL import Image
+    
+        # 1) Load official EuroSAT (RGB) — no remote code execution required
+        #    Returns a DatasetDict with a single "train" split containing all samples.
+        full_dataset = datasets.load_dataset("eurosat", "rgb")["train"]
+    
+        # Get canonical class names from the dataset features
+        name_classes = full_dataset.features["label"].names
+    
+        # 2) Build a NON-overlapping random split using your desired sizes
+        total = full_dataset.num_rows
+        num_train = min(getattr(args, "num_train_samples", total // 2), total)
+        num_test  = min(getattr(args, "num_test_samples", total - num_train), total - num_train)
+    
+        # One permutation -> first N for train, next M for test (no leakage)
+        perm = np.random.permutation(total).tolist()
+        train_indices = perm[:num_train]
+        test_indices  = perm[num_train:num_train + num_test]
+    
         train_dataset = full_dataset.select(train_indices)
-        test_dataset = full_dataset.select(test_indices)
-
-        # Create label encoder from selected data only
-        unique_classes = list(set(train_dataset["label"] + test_dataset["label"]))
-        class_label = ClassLabel(names=unique_classes)
-
-        def map_label(example):
-            example["label"] = class_label.str2int(example["label"])
-            return example
-
-        def load_image(example):
-            image_path = example["image"]
-            image = Image.open(image_path).convert("RGB")
-            example["image"] = transform(image)
-            return example
-
-        # Image transform
+        test_dataset  = full_dataset.select(test_indices)
+    
+        # 3) Define transforms (keep yours)
         transform = transforms.Compose([
             transforms.Resize((224, 224)),
-            transforms.ToTensor()
+            transforms.ToTensor(),  # values in [0,1]
         ])
-
-        # Apply mapping and image loading only to selected subsets
-        train_dataset = train_dataset.map(map_label).map(load_image)
-        test_dataset = test_dataset.map(map_label).map(load_image)
-
-        # Create DatasetDict
+    
+        # 4) Apply transforms lazily via .map (handles PIL.Image inputs from the dataset)
+        def apply_transform(example):
+            # example["image"] is already a PIL.Image from the official EuroSAT loader
+            img = example["image"]
+            if not isinstance(img, Image.Image):  # extra safety
+                img = Image.open(img).convert("RGB")
+            example["image"] = transform(img)
+            return example
+    
+        train_dataset = train_dataset.map(apply_transform)
+        test_dataset  = test_dataset.map(apply_transform)
+    
+        # 5) Wrap back into a DatasetDict and set PyTorch format
         dataset = datasets.DatasetDict({
             "train": ddf(train_dataset.to_dict()),
-            "test": ddf(test_dataset.to_dict())
+            "test":  ddf(test_dataset.to_dict())
         })
-
-        # Set format for PyTorch
         dataset.set_format("torch", columns=["image", "label"])
 
-
-        name_classes = sorted(set(full_dataset["label"]))
         return dataset, len(name_classes), name_classes
 
     elif args.dataset in ["SVHN", "svhn"]:
