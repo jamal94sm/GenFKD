@@ -78,7 +78,7 @@ def main():
     
     # ===================== Build public dataset =====================
     
-    synth_img_dir = "/project/def-arashmoh/shahab33/FedPD/Synthetic_Image/EuroSAT"
+    synth_img_dir = "/project/def-arashmoh/shahab33/FedPD/Synthetic_Image/Fashion"
     #public_data = MyUtils.load_synthetic_images( name_classes, data_dir=synth_img_dir, max_per_class=args.num_synth_img_per_class)
     if "sidclip" in args.setup or "open_vocab" in args.setup: 
         public_data = MyUtils.load_synthetic_images(name_classes, 
@@ -363,9 +363,9 @@ if __name__ == "__main__":
     # ft: clip is fine-tuned --- mean: average of descriptions' embedding is used for refrence
     # M: multiple descriptions --- sift: only true_labeled soft labels are shared with the server
     configurations = [
-        {"setup": "local"},
         {"setup": "proposed_yn"},
         {"setup": "fedmd_yn"},
+        {"setup": "local"},
         {"setup": "fedavg"},
         {"setup": "proposed_real_yn"},
         #{"setup": "fedmd_synth_yn"},
