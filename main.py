@@ -78,7 +78,7 @@ def main():
     
     # ===================== Build public dataset =====================
     
-    synth_img_dir = "/project/def-arashmoh/shahab33/GenFKD/Synthetic_Image/EuroSAT"
+    synth_img_dir = "/project/def-arashmoh/shahab33/FedPD/Synthetic_Image/EuroSAT"
     #public_data = MyUtils.load_synthetic_images( name_classes, data_dir=synth_img_dir, max_per_class=args.num_synth_img_per_class)
     if "sidclip" in args.setup or "open_vocab" in args.setup: 
         public_data = MyUtils.load_synthetic_images(name_classes, 
