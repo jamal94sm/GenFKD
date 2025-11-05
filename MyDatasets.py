@@ -17,7 +17,8 @@ def shuffling(a, b):
 from datasets import load_dataset, DatasetDict
 import datasets
 import torch
-import torch.nn.functional as F  # for resizing if needed
+import torch.nn.functional as F  # for resizing
+
 def load_data_from_Huggingface():
     ds_key = (args.dataset or "").lower().strip()
 
@@ -27,10 +28,10 @@ def load_data_from_Huggingface():
         split_spec = ['train[:100%]', 'test[:100%]']
     elif ds_key in ["cifar10", "cifar-10"]:
         hf_name = "cifar10"
-        split_spec = ['train[:50%]', 'test[:50%]']  # same style as your CIFAR-10 branch
+        split_spec = ['train[:50%]', 'test[:50%]']
     elif ds_key in ["fashionmnist", "fashion-mnist", "fashion_mnist"]:
         hf_name = "fashion_mnist"
-        split_spec = ['train[:50%]', 'test[:50%]']  # same style as CIFAR-10 per your request
+        split_spec = ['train[:50%]', 'test[:50%]']
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}. "
                          f"Use one of: MNIST, CIFAR10, Fashion-MNIST")
@@ -38,37 +39,27 @@ def load_data_from_Huggingface():
     # --- Load base splits from Hugging Face ---
     loaded_dataset = datasets.load_dataset(hf_name, split=split_spec)
 
-    # --- Create sampled DatasetDict (train/test) using your shuffling and ddf ---
+    # --- Create sampled DatasetDict ---
     dataset = datasets.DatasetDict({
         "train": ddf(loaded_dataset[0][shuffling(loaded_dataset[0].num_rows, args.num_train_samples)]),
         "test":  ddf(loaded_dataset[1][shuffling(loaded_dataset[1].num_rows, args.num_test_samples)])
     })
 
-    # --- Ensure column names are "image" and "label" ---
-    # Train split
-    if "image" not in dataset["train"].column_names:
-        dataset = dataset.rename_column(dataset["train"].column_names[0], "image")
-    if "label" not in dataset["train"].column_names:
-        cols = dataset["train"].column_names
-        cand = "label" if "label" in cols else (cols[1] if len(cols) > 1 else None)
-        if cand is None:
-            raise RuntimeError("Label column not found and cannot be inferred.")
-        dataset = dataset.rename_column(cand, "label")
+    # --- Ensure column names ---
+    for split in ["train", "test"]:
+        if "image" not in dataset[split].column_names:
+            dataset = dataset.rename_column(dataset[split].column_names[0], "image")
+        if "label" not in dataset[split].column_names:
+            cols = dataset[split].column_names
+            cand = "label" if "label" in cols else (cols[1] if len(cols) > 1 else None)
+            if cand is None:
+                raise RuntimeError(f"Label column not found in {split} split.")
+            dataset = dataset.rename_column(cand, "label")
 
-    # Test split
-    if "image" not in dataset["test"].column_names:
-        dataset = dataset.rename_column(dataset["test"].column_names[0], "image")
-    if "label" not in dataset["test"].column_names:
-        cols = dataset["test"].column_names
-        cand = "label" if "label" in cols else (cols[1] if len(cols) > 1 else None)
-        if cand is None:
-            raise RuntimeError("Label column not found (test split) and cannot be inferred.")
-        dataset = dataset.rename_column(cand, "label")
-
-    # --- Set torch format so images come as tensors (C,H,W) ---
+    # --- Set torch format ---
     dataset.set_format("torch", columns=["image", "label"])
 
-    # --- Robust normalization to [0,1] if needed ---
+    # --- Normalize to [0,1] if needed ---
     def normalization(batch):
         imgs = batch["image"]
         norm_imgs = []
@@ -82,37 +73,27 @@ def load_data_from_Huggingface():
             norm_imgs.append(img)
         return {"image": norm_imgs, "label": batch["label"]}
 
-    # Decide if normalization is needed by peeking the first sample
     sample_img = dataset["train"][0]["image"]
     needs_norm = (sample_img.dtype == torch.uint8) or (sample_img.max() > 1.0)
     if needs_norm:
         dataset = dataset.map(normalization, batched=True)
 
-    # --- Fashion-MNIST: convert to 3×28×28 (repeat channels; ensure spatial size) ---
+    # --- Fashion-MNIST: convert to 3×32×32 ---
     if hf_name == "fashion_mnist":
         def to_cifar_style_fashion(batch):
             imgs = batch["image"]
             out = []
             for img in imgs:
-                # Ensure tensor
                 if not torch.is_tensor(img):
                     img = torch.as_tensor(img)
-
-                # Ensure channel dimension exists (expecting C,H,W after set_format)
                 if img.ndim == 2:  # H,W
                     img = img.unsqueeze(0)  # 1,H,W
-
-                # Repeat grayscale to 3 channels if needed
                 if img.size(0) == 1:
                     img = img.repeat(3, 1, 1)  # 3,H,W
-
-                # Ensure spatial size is 28x28 (guard if upstream changed)
-                if img.shape[-2:] != (28, 28):
-                    img = F.interpolate(
-                        img.unsqueeze(0), size=(28, 28),
-                        mode="bilinear", align_corners=False
-                    ).squeeze(0)
-
+                # Resize to 32×32
+                if img.shape[-2:] != (32, 32):
+                    img = F.interpolate(img.unsqueeze(0), size=(32, 32),
+                                        mode="bilinear", align_corners=False).squeeze(0)
                 out.append(img)
             return {"image": out, "label": batch["label"]}
 
@@ -122,7 +103,6 @@ def load_data_from_Huggingface():
     name_classes = loaded_dataset[0].features["label"].names
 
     return dataset, len(name_classes), name_classes
-
 
 
 '''
