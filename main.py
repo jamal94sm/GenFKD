@@ -353,6 +353,19 @@ if __name__ == "__main__":
     print("\n class names: \n", name_classes)
 
 
+    name_classes = [
+        "T-shirt",
+        "Trouser",
+        "Pullover",
+        "Dress",
+        "Coat",
+        "Sandal",
+        "Shirt",
+        "Sneaker",
+        "Bag",
+        "Ankle boot"
+    ]
+
     # ===================== Data Distribution =====================
     distributed_dataset, num_samples = MyDatasets.data_distributing(Dataset, num_classes)
     print("\n ]data distribution of devices: \n", num_samples)
