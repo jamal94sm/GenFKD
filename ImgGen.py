@@ -6,7 +6,7 @@ import os
 import json
 
 
-
+'''
 # -------------------------------
 # Load Medical X-ray Stable Diffusion (X-rays, CTs, and MRIs)
 # -------------------------------
@@ -33,7 +33,27 @@ pipe = DiffusionPipeline.from_pretrained(
 # Load LoRA weights from local path
 pipe.load_lora_weights(lora_local_path)
 
+
+
+
+import open_clip
+import torch
+
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+# Load model from specific file path
+model = open_clip.create_model(
+    model_name="ViT-L-14",
+    pretrained="/home/shahab33/scratch/huggingface_cache/whyxrayclip/model.pt",
+    precision="fp16" if device == "cuda" else "fp32"
+).to(device)
+
+# Load tokenizer and preprocessing
+tokenizer = open_clip.get_tokenizer("ViT-L-14")
+_, _, preprocess = open_clip.create_model_and_transforms(model_name="ViT-L-14")
 '''
+
+
 # Define cache location
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
@@ -56,28 +76,14 @@ if device == "cpu":
     pipe.enable_attention_slicing()
 
 
-'''    
 # -------------------------------
 # Load Hugging Face CLIP model
 # -------------------------------
-#clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-#clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
 
-import open_clip
-import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load model from specific file path
-model = open_clip.create_model(
-    model_name="ViT-L-14",
-    pretrained="/home/shahab33/scratch/huggingface_cache/whyxrayclip/model.pt",
-    precision="fp16" if device == "cuda" else "fp32"
-).to(device)
-
-# Load tokenizer and preprocessing
-tokenizer = open_clip.get_tokenizer("ViT-L-14")
-_, _, preprocess = open_clip.create_model_and_transforms(model_name="ViT-L-14")
 
 # -------------------------------
 # class names
@@ -99,14 +105,25 @@ classes = ["Normal", "Pneumonia"]
 '''
 
 
-classes = ["Normal", "Pneumonia"]
+classes = [
+    "tench",
+    "English springer",
+    "cassette player",
+    "chain saw",
+    "church",
+    "French horn",
+    "garbage truck",
+    "gas pump",
+    "golf ball",
+    "parachute"
+]
 
 
-output_path = "Synthetic_Image/Pneumonia/"
-json_path = "pneumonia_descriptions.json"  # update path if needed
-cls_template_prompts = [f"a gray-scale photo of a {cls} chest" for cls in classes]
-gray_scale = True
-confident_value = 0.8
+output_path = "Synthetic_Image/imagenette/"
+json_path = "imagenette_descriptions.json"  # update path if needed
+cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
+gray_scale = False
+confident_value = 0.9
 num_inference_steps = 20
 
 # -------------------------------
@@ -115,7 +132,7 @@ num_inference_steps = 20
 with open(json_path, "r") as f:
     descriptions = json.load(f)
 
-'''
+
 # -------------------------------
 # Prepare reference text embeddings
 # -------------------------------
@@ -123,7 +140,7 @@ with torch.no_grad():
     text_inputs = clip_processor(text=cls_template_prompts, return_tensors="pt", padding=True).to(device)
     text_features = clip_model.get_text_features(**text_inputs)
     text_features /= text_features.norm(dim=-1, keepdim=True)
-'''
+
 
 # -------------------------------
 # Output path
@@ -148,7 +165,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.7):
 
 
         
-        '''
+        
         # CLIP inference
         inputs = clip_processor(
             text=cls_template_prompts,
@@ -161,7 +178,7 @@ def generate_and_infer(prompts_list, expected_class, thresh=0.7):
             outputs = clip_model(**inputs)
             logits_per_image = outputs.logits_per_image  # [1, num_classes]
             probs = logits_per_image.softmax(dim=-1).cpu().numpy()[0]
-'''
+
         image_input = preprocess(image).unsqueeze(0).to(device)
 
         # Tokenize and move text input to device
@@ -238,7 +255,6 @@ all_failed_prompts = {}
 saved_summary = {}
 
 for cls in classes:
-#for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
     results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=confident_value)
