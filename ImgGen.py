@@ -144,6 +144,7 @@ classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt"
 
 classes = ["Normal", "Pneumonia"]
 
+### imagenette
 classes = [
     "tench",
     "English springer",
@@ -157,10 +158,7 @@ classes = [
     "parachute"
 ]
 
-
-'''
-
-
+### animals 10
 classes = [
     "butterfly",
     "cat",
@@ -174,9 +172,52 @@ classes = [
     "squirrel"
 ]
 
+### flowers 17
+classes = [
+    "daffodil",
+    "snowdrop",
+    "lilyvalley",
+    "bluebell",
+    "crocus",
+    "iris",
+    "tigerlily",
+    "tulip",
+    "fritillary",
+    "sunflower",
+    "daisy",
+    "coltsfoot",
+    "dandelion",
+    "cowslip",
+    "buttercup",
+    "windflower",
+    "pansy"
+]
+'''
 
-output_path = "Synthetic_Image/animals/"
-json_path = "animals10_descriptions.json"  # update path if needed
+classes = [
+    "daffodil",
+    "snowdrop",
+    "lilyvalley",
+    "bluebell",
+    "crocus",
+    "iris",
+    "tigerlily",
+    "tulip",
+    "fritillary",
+    "sunflower",
+    "daisy",
+    "coltsfoot",
+    "dandelion",
+    "cowslip",
+    "buttercup",
+    "windflower",
+    "pansy"
+]
+
+
+
+output_path = "Synthetic_Image/flowers/"
+json_path = "flowers17_descriptions.json"  # update path if needed
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
 gray_scale = False
 confident_value = 0.9
