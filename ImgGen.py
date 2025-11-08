@@ -10,8 +10,8 @@ from pathlib import Path
 # ------------------------------------------------------------
 # Paths and parameters
 # ------------------------------------------------------------
-output_path = "Synthetic_Image/flowers/"
-json_path = "flowers17_descriptions.json"  # <- use the file you generated
+output_path = "Synthetic_Image/animals/"
+json_path = "animals10_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
 thresh_default = 0.9  # default threshold used in generate_and_infer
@@ -86,25 +86,18 @@ classes = [
 '''
 
 
-### flowers 17
+### animals 10
 classes = [
-    "daffodil",
-    "snowdrop",
-    "lilyvalley",
-    "bluebell",
-    "crocus",
-    "iris",
-    "tigerlily",
-    "tulip",
-    "fritillary",
-    "sunflower",
-    "daisy",
-    "coltsfoot",
-    "dandelion",
-    "cowslip",
-    "buttercup",
-    "windflower",
-    "pansy"
+    "butterfly",
+    "cat",
+    "chicken",
+    "cow",
+    "dog",
+    "elephant",
+    "horse",
+    "sheep",
+    "spider",
+    "squirrel"
 ]
 
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
