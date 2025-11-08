@@ -143,8 +143,6 @@ classes = [
 classes = [ "T-shirt", "Trouser", "Pullover", "Dress", "Coat", "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot" ]
 
 classes = ["Normal", "Pneumonia"]
-'''
-
 
 classes = [
     "tench",
@@ -160,8 +158,25 @@ classes = [
 ]
 
 
-output_path = "Synthetic_Image/imagenette/"
-json_path = "imagenette_descriptions.json"  # update path if needed
+'''
+
+
+classes = [
+    "butterfly",
+    "cat",
+    "chicken",
+    "cow",
+    "dog",
+    "elephant",
+    "horse",
+    "sheep",
+    "spider",
+    "squirrel"
+]
+
+
+output_path = "Synthetic_Image/animals/"
+json_path = "animals10_descriptions.json"  # update path if needed
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
 gray_scale = False
 confident_value = 0.9
