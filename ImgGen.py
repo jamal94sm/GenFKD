@@ -54,35 +54,76 @@ _, _, preprocess = open_clip.create_model_and_transforms(model_name="ViT-L-14")
 '''
 
 
-# Define cache location
+import os
+import torch
+from pathlib import Path
+from diffusers import StableDiffusionPipeline
+from transformers import CLIPModel, CLIPProcessor
+
+# --------------------------------------------------------------------
+# Define cache location (same as your diffusion setup)
+# --------------------------------------------------------------------
 cache_dir = "/home/shahab33/scratch/huggingface_cache"
 os.environ["HF_HOME"] = cache_dir
 os.environ["TRANSFORMERS_CACHE"] = cache_dir
 os.environ["DIFFUSERS_CACHE"] = cache_dir
 os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
 
+# Strongly recommended on compute nodes so no HTTP calls are made
+os.environ["HF_HUB_OFFLINE"] = "1"  # offline mode (only cached/local files)  # <-- key for compute nodes
+
+# --------------------------------------------------------------------
+# Stable Diffusion (unchanged, uses cache_dir)
+# --------------------------------------------------------------------
 model_id = "CompVis/stable-diffusion-v1-4"
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 pipe = StableDiffusionPipeline.from_pretrained(
     model_id,
     cache_dir=cache_dir,         # ✅ ensure caching in scratch
-    use_auth_token=True,         # ✅ use your login token
+    use_auth_token=True,         # ✅ use your login token (optional if already cached)
     torch_dtype=torch.float16 if device == "cuda" else torch.float32
 )
-
 pipe = pipe.to(device)
 if device == "cpu":
     pipe.enable_attention_slicing()
 
+# --------------------------------------------------------------------
+# CLIP (offline-first, cache + local fallback)
+# --------------------------------------------------------------------
+clip_repo_id = "openai/clip-vit-base-patch32"
 
-# -------------------------------
-# Load Hugging Face CLIP model
-# -------------------------------
-clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
-clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+# Optional: a pre-staged local directory you saved on a login node
+# (see staging snippet below). Adjust to your path if you have one.
+clip_local_dir = "/home/shahab33/scratch/models/openai/clip-vit-base-patch32"
 
+def _load_clip_from(source):
+    """Load CLIP model+processor from source (repo id or local path) without any network calls."""
+    clip_m = CLIPModel.from_pretrained(
+        source,
+        cache_dir=cache_dir,       # align with your scratch cache
+        local_files_only=True      # **critical**: use cache/local files only
+    ).to(device)
+    clip_p = CLIPProcessor.from_pretrained(
+        source,
+        cache_dir=cache_dir,
+        local_files_only=True
+    )
+    return clip_m, clip_p
 
+try:
+    # 1) Try cache for the Hub repo id (no internet; offline mode forces cache)
+    clip_model, clip_processor = _load_clip_from(clip_repo_id)
+except Exception as e_cache:
+    # 2) Fallback: use your explicitly staged local directory (if present)
+    if Path(clip_local_dir).exists():
+        clip_model, clip_processor = _load_clip_from(clip_local_dir)
+    else:
+        raise RuntimeError(
+            f"CLIP not found in cache and no local dir at: {clip_local_dir}\n"
+            f"Stage the model on a login node (see snippet below) and copy to compute node.\n"
+            f"Cache error: {e_cache}"
+        )
 
 
 # -------------------------------
