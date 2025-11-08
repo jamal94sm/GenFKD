@@ -10,8 +10,8 @@ from pathlib import Path
 # ------------------------------------------------------------
 # Paths and parameters
 # ------------------------------------------------------------
-output_path = "Synthetic_Image/animals/"
-json_path = "animals10_descriptions.json"  # <- use the file you generated
+output_path = "Synthetic_Image/flowers/"
+json_path = "flowers17_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
 thresh_default = 0.9  # default threshold used in generate_and_infer
@@ -85,19 +85,25 @@ classes = [
 ]
 '''
 
-
-### animals 10
+### flowers 17
 classes = [
-    "butterfly",
-    "cat",
-    "chicken",
-    "cow",
-    "dog",
-    "elephant",
-    "horse",
-    "sheep",
-    "spider",
-    "squirrel"
+    "daffodil",
+    "snowdrop",
+    "lilyvalley",
+    "bluebell",
+    "crocus",
+    "iris",
+    "tigerlily",
+    "tulip",
+    "fritillary",
+    "sunflower",
+    "daisy",
+    "coltsfoot",
+    "dandelion",
+    "cowslip",
+    "buttercup",
+    "windflower",
+    "pansy"
 ]
 
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
@@ -263,8 +269,8 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-#for cls in ["lilyvalley","buttercup"]
-for cls in classes:
+for cls in ["lilyvalley","buttercup"]:
+#for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
     results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=thresh_default)
