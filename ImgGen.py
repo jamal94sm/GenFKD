@@ -8,58 +8,13 @@ import json
 from pathlib import Path
 
 # ------------------------------------------------------------
-# Cache / offline settings
+# Paths and parameters
 # ------------------------------------------------------------
-cache_dir = "/home/shahab33/scratch/huggingface_cache"
-os.environ["HF_HOME"] = cache_dir
-os.environ["TRANSFORMERS_CACHE"] = cache_dir
-os.environ["DIFFUSERS_CACHE"] = cache_dir
-os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
-os.environ["HF_HUB_OFFLINE"] = "1"  # offline mode (no HTTP)
-
-# ------------------------------------------------------------
-# Stable Diffusion
-# ------------------------------------------------------------
-model_id = "CompVis/stable-diffusion-v1-4"
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-pipe = StableDiffusionPipeline.from_pretrained(
-    model_id,
-    cache_dir=cache_dir,
-    use_auth_token=True,  # optional if already cached
-    torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-)
-pipe = pipe.to(device)
-if device == "cpu":
-    pipe.enable_attention_slicing()
-
-# ------------------------------------------------------------
-# CLIP (Transformers-only; offline-first)
-# ------------------------------------------------------------
-clip_repo_id = "openai/clip-vit-base-patch32"
-clip_local_dir = "/home/shahab33/scratch/models/openai/clip-vit-base-patch32"
-
-def _load_clip_from(source):
-    """Load CLIP model+processor from source (repo id or local path) without any network calls."""
-    clip_m = CLIPModel.from_pretrained(
-        source, cache_dir=cache_dir, local_files_only=True
-    ).to(device)
-    clip_p = CLIPProcessor.from_pretrained(
-        source, cache_dir=cache_dir, local_files_only=True
-    )
-    return clip_m, clip_p
-
-try:
-    clip_model, clip_processor = _load_clip_from(clip_repo_id)
-except Exception as e_cache:
-    if Path(clip_local_dir).exists():
-        clip_model, clip_processor = _load_clip_from(clip_local_dir)
-    else:
-        raise RuntimeError(
-            f"CLIP not found in cache and no local dir at: {clip_local_dir}\n"
-            f"Stage the model on a login node and copy to compute node.\n"
-            f"Cache error: {e_cache}"
-        )
+output_path = "Synthetic_Image/imagenette/"
+json_path = "imagenette_descriptions.json"  # <- use the file you generated
+gray_scale = False
+num_inference_steps = 20
+confident_value = 0.9  # default threshold used in generate_and_infer
 
 
 # -------------------------------
@@ -146,14 +101,61 @@ classes = [
 
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
 
+
 # ------------------------------------------------------------
-# Paths and parameters
+# Cache / offline settings
 # ------------------------------------------------------------
-output_path = "Synthetic_Image/imagenette/"
-json_path = "imagenette_descriptions.json"  # <- use the file you generated
-gray_scale = False
-num_inference_steps = 20
-confident_value = 0.9  # default threshold used in generate_and_infer
+cache_dir = "/home/shahab33/scratch/huggingface_cache"
+os.environ["HF_HOME"] = cache_dir
+os.environ["TRANSFORMERS_CACHE"] = cache_dir
+os.environ["DIFFUSERS_CACHE"] = cache_dir
+os.environ["HUGGINGFACE_HUB_CACHE"] = cache_dir
+os.environ["HF_HUB_OFFLINE"] = "1"  # offline mode (no HTTP)
+
+# ------------------------------------------------------------
+# Stable Diffusion
+# ------------------------------------------------------------
+model_id = "CompVis/stable-diffusion-v1-4"
+device = "cuda" if torch.cuda.is_available() else "cpu"
+
+pipe = StableDiffusionPipeline.from_pretrained(
+    model_id,
+    cache_dir=cache_dir,
+    use_auth_token=True,  # optional if already cached
+    torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+)
+pipe = pipe.to(device)
+if device == "cpu":
+    pipe.enable_attention_slicing()
+
+# ------------------------------------------------------------
+# CLIP (Transformers-only; offline-first)
+# ------------------------------------------------------------
+clip_repo_id = "openai/clip-vit-base-patch32"
+clip_local_dir = "/home/shahab33/scratch/models/openai/clip-vit-base-patch32"
+
+def _load_clip_from(source):
+    """Load CLIP model+processor from source (repo id or local path) without any network calls."""
+    clip_m = CLIPModel.from_pretrained(
+        source, cache_dir=cache_dir, local_files_only=True
+    ).to(device)
+    clip_p = CLIPProcessor.from_pretrained(
+        source, cache_dir=cache_dir, local_files_only=True
+    )
+    return clip_m, clip_p
+
+try:
+    clip_model, clip_processor = _load_clip_from(clip_repo_id)
+except Exception as e_cache:
+    if Path(clip_local_dir).exists():
+        clip_model, clip_processor = _load_clip_from(clip_local_dir)
+    else:
+        raise RuntimeError(
+            f"CLIP not found in cache and no local dir at: {clip_local_dir}\n"
+            f"Stage the model on a login node and copy to compute node.\n"
+            f"Cache error: {e_cache}"
+        )
+
 
 # ------------------------------------------------------------
 # Load JSON descriptions
