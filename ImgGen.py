@@ -132,16 +132,16 @@ classes = [
 
 
 classes = [
-    "butterfly",
-    "cat",
-    "chicken",
-    "cow",
-    "dog",
-    "elephant",
-    "horse",
-    "sheep",
-    "spider",
-    "squirrel"
+    "tench",
+    "English springer",
+    "cassette player",
+    "chain saw",
+    "church",
+    "French horn",
+    "garbage truck",
+    "gas pump",
+    "golf ball",
+    "parachute"
 ]
 
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
@@ -149,8 +149,8 @@ cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
 # ------------------------------------------------------------
 # Paths and parameters
 # ------------------------------------------------------------
-output_path = "Synthetic_Image/animals/"
-json_path = "animals10_descriptions.json"  # <- use the file you generated
+output_path = "Synthetic_Image/imagenette/"
+json_path = "imagenette_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
 thresh_default = 0.9  # default threshold used in generate_and_infer
