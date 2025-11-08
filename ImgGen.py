@@ -263,8 +263,8 @@ all_failed = {}
 all_failed_prompts = {}
 saved_summary = {}
 
-for cls in ["lilyvalley","buttercup"]
-#for cls in classes:
+#for cls in ["lilyvalley","buttercup"]
+for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
     results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=thresh_default)
