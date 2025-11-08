@@ -14,7 +14,7 @@ output_path = "Synthetic_Image/flowers/"
 json_path = "flowers17_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
-confident_value = 0.9  # default threshold used in generate_and_infer
+thresh_default = 0.9  # default threshold used in generate_and_infer
 
 
 # -------------------------------
@@ -273,7 +273,7 @@ saved_summary = {}
 for cls in classes:
     print(f"\n--- Generating images for class: {cls} ---")
     prompts_list = descriptions[cls]
-    results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=confident_value)
+    results, failed, failed_prompts, saved_count = generate_and_infer(prompts_list, expected_class=cls, thresh=thresh_default)
     all_results[cls] = results
     all_failed[cls] = failed
     all_failed_prompts[cls] = failed_prompts
