@@ -153,7 +153,7 @@ output_path = "Synthetic_Image/imagenette/"
 json_path = "imagenette_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
-thresh_default = 0.9  # default threshold used in generate_and_infer
+confident_value = 0.9  # default threshold used in generate_and_infer
 
 # ------------------------------------------------------------
 # Load JSON descriptions
