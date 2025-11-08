@@ -132,17 +132,25 @@ classes = [
 
 
 classes = [
-    "daffodil", "snowdrop", "lilyvalley", "bluebell", "crocus", "iris",
-    "tigerlily", "tulip", "fritillary", "sunflower", "daisy", "coltsfoot",
-    "dandelion", "cowslip", "buttercup", "windflower", "pansy",
+    "butterfly",
+    "cat",
+    "chicken",
+    "cow",
+    "dog",
+    "elephant",
+    "horse",
+    "sheep",
+    "spider",
+    "squirrel"
 ]
+
 cls_template_prompts = [f"a photo of a {cls}" for cls in classes]
 
 # ------------------------------------------------------------
 # Paths and parameters
 # ------------------------------------------------------------
-output_path = "Synthetic_Image/flowers/"
-json_path = "flowers17_descriptions.json"  # <- use the file you generated
+output_path = "Synthetic_Image/animals/"
+json_path = "animals10_descriptions.json"  # <- use the file you generated
 gray_scale = False
 num_inference_steps = 20
 thresh_default = 0.9  # default threshold used in generate_and_infer
