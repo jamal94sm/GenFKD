@@ -17,7 +17,8 @@ def shuffling(a, b):
 from datasets import load_dataset, DatasetDict
 import datasets
 import torch
-import torch.nn.functional as F  # for resizing
+import torch.nn.functional as F
+import numpy as np
 
 def load_data_from_Huggingface():
     ds_key = (args.dataset or "").lower().strip()
@@ -41,7 +42,7 @@ def load_data_from_Huggingface():
         # Ref: HF dataset card
         hf_name = "randall-lab/imagenette"
         split_spec = ['train[:100%]', 'test[:100%]']
-        extra_load_kwargs = {"trust_remote_code": True}  # [1](https://huggingface.co/datasets/randall-lab/imagenette)
+        extra_load_kwargs = {"trust_remote_code": True}  # https://huggingface.co/datasets/randall-lab/imagenette
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}. "
                          f"Use one of: MNIST, CIFAR10, Fashion-MNIST, Imagenette")
@@ -66,47 +67,58 @@ def load_data_from_Huggingface():
                 raise RuntimeError(f"Label column not found in {split} split.")
             dataset = dataset.rename_column(cand, "label")
 
-    # --- Set torch format ---
-    dataset.set_format("torch", columns=["image", "label"])
+    # --- Base format (keep Python objects so transforms can return tensors)
+    # NOTE: set_format resets transforms; do formatting BEFORE transforms or skip if transforms return tensors.
+    # Ref: https://stackoverflow.com/a/76966039  (set_format resets transforms)
+    dataset.set_format(type=None)
 
-    # --- Normalize to [0,1] if needed ---
-    def normalization(batch):
+    # --- On-the-fly transforms (no blocking map/cache), per dataset ---
+    def _to_tensor_norm(batch):
+        """PIL.Image -> torch.FloatTensor (C,H,W), RGB, [0,1] normalization."""
         imgs = batch["image"]
-        norm_imgs = []
+        out = []
         for img in imgs:
-            if not torch.is_tensor(img):
-                img = torch.as_tensor(img)
-            if img.dtype == torch.uint8 or img.max() > 1.0:
-                img = img.float() / 255.0
-            else:
-                img = img.float()
-            norm_imgs.append(img)
-        return {"image": norm_imgs, "label": batch["label"]}
+            arr = np.asarray(img)
+            # Ensure 3 channels
+            if arr.ndim == 2:                    # grayscale -> 3ch
+                arr = np.repeat(arr[..., None], 3, axis=-1)
+            elif arr.shape[-1] == 4:             # RGBA -> RGB
+                arr = arr[..., :3]
+            arr = arr.astype("float32")
+            # Normalize to [0,1] (typical for uint8 images)
+            if arr.max() > 1.0:
+                arr = arr / 255.0
+            ten = torch.from_numpy(arr).permute(2, 0, 1)   # (C,H,W)
+            out.append(ten)
+        return {"image": out, "label": batch["label"]}
 
-    sample_img = dataset["train"][0]["image"]
-    needs_norm = (sample_img.dtype == torch.uint8) or (sample_img.max() > 1.0)
-    if needs_norm:
-        dataset = dataset.map(normalization, batched=True)
+    def _to_tensor_norm_fashion32(batch):
+        """Fashion-MNIST specific: normalize + ensure 3ch + resize to 32x32 (CIFAR-style)."""
+        imgs = batch["image"]
+        out = []
+        for img in imgs:
+            arr = np.asarray(img).astype("float32")
+            # Fashion-MNIST is grayscale; make 3 channels
+            if arr.ndim == 2:
+                arr = np.repeat(arr[..., None], 3, axis=-1)
+            elif arr.shape[-1] == 4:
+                arr = arr[..., :3]
+            if arr.max() > 1.0:
+                arr = arr / 255.0
+            ten = torch.from_numpy(arr).permute(2, 0, 1)   # (C,H,W)
+            # Resize to 32×32
+            if ten.shape[-2:] != (32, 32):
+                ten = F.interpolate(ten.unsqueeze(0), size=(32, 32),
+                                    mode="bilinear", align_corners=False).squeeze(0)
+            out.append(ten)
+        return {"image": out, "label": batch["label"]}
 
-    # --- Fashion-MNIST: convert to 3×32×32 ---
-    if hf_name == "fashion_mnist":
-        def to_cifar_style_fashion(batch):
-            imgs = batch["image"]
-            out = []
-            for img in imgs:
-                if not torch.is_tensor(img):
-                    img = torch.as_tensor(img)
-                if img.ndim == 2:  # H,W
-                    img = img.unsqueeze(0)  # 1,H,W
-                if img.size(0) == 1:
-                    img = img.repeat(3, 1, 1)  # 3,H,W
-                # Resize to 32×32
-                if img.shape[-2:] != (32, 32):
-                    img = F.interpolate(img.unsqueeze(0), size=(32, 32),
-                                        mode="bilinear", align_corners=False).squeeze(0)
-                out.append(img)
-            return {"image": out, "label": batch["label"]}
-        dataset = dataset.map(to_cifar_style_fashion, batched=True)
+    # Apply the appropriate transform
+    for split in ["train", "test"]:
+        if hf_name == "fashion_mnist":
+            dataset[split] = dataset[split].with_transform(_to_tensor_norm_fashion32)
+        else:
+            dataset[split] = dataset[split].with_transform(_to_tensor_norm)
 
     # --- Class names ---
     name_classes = loaded_dataset[0].features["label"].names
