@@ -12,7 +12,7 @@ def get_args():
     #parser.add_argument('--device',default="mps" if torch.backends.mps.is_available() else "cpu") # for runing on mps MAC OS
 
     parser.add_argument('--setup', default="local")
-    parser.add_argument('--output_name', type=str, default='_ResNet18_cifar10_10K_alpha1000_')
+    parser.add_argument('--output_name', type=str, default='_ResNet18_cifar10_10K_alpha10^4_')
     parser.add_argument('--synth_path', type=str, default="/home/shahab33/projects/def-arashmoh/shahab33/FedPD/Synthetic_Image/CIFAR10/")
 
     parser.add_argument('--num_clients', type=int, default= 10 + 1)
@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--num_train_samples', type=int, default=11000)
     parser.add_argument('--num_test_samples', type=int, default=1000)
     parser.add_argument('--dataset', type=str, default="cifar10")
-    parser.add_argument('--alpha_dirichlet', type=float, default=1000) 
+    parser.add_argument('--alpha_dirichlet', type=float, default=10_000) 
     parser.add_argument('--rounds', type=int, default=30)
     parser.add_argument('--num_synth_img_per_class', type=int, default=100)
     
