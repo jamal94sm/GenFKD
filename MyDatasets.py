@@ -42,7 +42,8 @@ def load_data_from_Huggingface():
         # Ref: HF dataset card
         hf_name = "randall-lab/imagenette"
         split_spec = ['train[:100%]', 'test[:100%]']
-        extra_load_kwargs = {"trust_remote_code": True}  # https://huggingface.co/datasets/randall-lab/imagenette
+        extra_load_kwargs = {"trust_remote_code": True}  # See dataset card
+        # https://huggingface.co/datasets/randall-lab/imagenette
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}. "
                          f"Use one of: MNIST, CIFAR10, Fashion-MNIST, Imagenette")
@@ -68,52 +69,45 @@ def load_data_from_Huggingface():
             dataset = dataset.rename_column(cand, "label")
 
     # --- Base format (keep Python objects so transforms can return tensors)
-    # NOTE: set_format resets transforms; do formatting BEFORE transforms or skip if transforms return tensors.
-    # Ref: https://stackoverflow.com/a/76966039  (set_format resets transforms)
     dataset.set_format(type=None)
 
-    # --- On-the-fly transforms (no blocking map/cache), per dataset ---
+    # --- On-the-fly transforms (no blocking map/cache) ---
     def _to_tensor_norm(batch):
         """PIL.Image -> torch.FloatTensor (C,H,W), RGB, [0,1] normalization."""
         imgs = batch["image"]
         out = []
         for img in imgs:
             arr = np.asarray(img)
-            # Ensure 3 channels
-            if arr.ndim == 2:                    # grayscale -> 3ch
+            if arr.ndim == 2:
                 arr = np.repeat(arr[..., None], 3, axis=-1)
-            elif arr.shape[-1] == 4:             # RGBA -> RGB
+            elif arr.shape[-1] == 4:
                 arr = arr[..., :3]
             arr = arr.astype("float32")
-            # Normalize to [0,1] (typical for uint8 images)
             if arr.max() > 1.0:
                 arr = arr / 255.0
-            ten = torch.from_numpy(arr).permute(2, 0, 1)   # (C,H,W)
+            ten = torch.from_numpy(arr).permute(2, 0, 1)
             out.append(ten)
         return {"image": out, "label": batch["label"]}
 
     def _to_tensor_norm_fashion32(batch):
-        """Fashion-MNIST specific: normalize + ensure 3ch + resize to 32x32 (CIFAR-style)."""
+        """Fashion-MNIST specific: normalize + ensure 3ch + resize to 32x32."""
         imgs = batch["image"]
         out = []
         for img in imgs:
             arr = np.asarray(img).astype("float32")
-            # Fashion-MNIST is grayscale; make 3 channels
             if arr.ndim == 2:
                 arr = np.repeat(arr[..., None], 3, axis=-1)
             elif arr.shape[-1] == 4:
                 arr = arr[..., :3]
             if arr.max() > 1.0:
                 arr = arr / 255.0
-            ten = torch.from_numpy(arr).permute(2, 0, 1)   # (C,H,W)
-            # Resize to 32×32
+            ten = torch.from_numpy(arr).permute(2, 0, 1)
             if ten.shape[-2:] != (32, 32):
                 ten = F.interpolate(ten.unsqueeze(0), size=(32, 32),
                                     mode="bilinear", align_corners=False).squeeze(0)
             out.append(ten)
         return {"image": out, "label": batch["label"]}
 
-    # Apply the appropriate transform
     for split in ["train", "test"]:
         if hf_name == "fashion_mnist":
             dataset[split] = dataset[split].with_transform(_to_tensor_norm_fashion32)
@@ -121,7 +115,28 @@ def load_data_from_Huggingface():
             dataset[split] = dataset[split].with_transform(_to_tensor_norm)
 
     # --- Class names ---
+    # Original features may expose synset IDs for Imagenette;
+    # Replace those with human-readable names.
     name_classes = loaded_dataset[0].features["label"].names
+
+    # Mapping: synset -> human-readable name (Imagenette)
+    # Sources: fastai Imagenette README / tutorials
+    synset_to_name = {
+        'n01440764': 'tench',
+        'n02102040': 'English springer',
+        'n02979186': 'cassette player',
+        'n03000684': 'chain saw',
+        'n03028079': 'church',
+        'n03394916': 'French horn',
+        'n03417042': 'garbage truck',
+        'n03425413': 'gas pump',
+        'n03445777': 'golf ball',
+        'n03888257': 'parachute',
+    }  # [1](https://github.com/fastai/imagenette)[2](https://docs.fast.ai/tutorial.imagenette.html)
+
+    # If the names look like synset IDs, map them to readable labels
+    if all(isinstance(n, str) and n.startswith('n') for n in name_classes):
+        name_classes = [synset_to_name.get(n, n) for n in name_classes]
 
     return dataset, len(name_classes), name_classes
 
