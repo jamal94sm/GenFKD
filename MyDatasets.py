@@ -26,18 +26,28 @@ def load_data_from_Huggingface():
     if ds_key in ["mnist"]:
         hf_name = "mnist"
         split_spec = ['train[:100%]', 'test[:100%]']
+        extra_load_kwargs = {}
     elif ds_key in ["cifar10", "cifar-10"]:
         hf_name = "cifar10"
         split_spec = ['train[:50%]', 'test[:50%]']
+        extra_load_kwargs = {}
     elif ds_key in ["fashionmnist", "fashion-mnist", "fashion_mnist"]:
         hf_name = "fashion_mnist"
         split_spec = ['train[:50%]', 'test[:50%]']
+        extra_load_kwargs = {}
+    elif ds_key in ["imagenette"]:
+        # Hugging Face: randall-lab/imagenette (train/test splits)
+        # Requires trust_remote_code=True because it uses a dataset script
+        # Ref: HF dataset card
+        hf_name = "randall-lab/imagenette"
+        split_spec = ['train[:100%]', 'test[:100%]']
+        extra_load_kwargs = {"trust_remote_code": True}  # [1](https://huggingface.co/datasets/randall-lab/imagenette)
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}. "
-                         f"Use one of: MNIST, CIFAR10, Fashion-MNIST")
+                         f"Use one of: MNIST, CIFAR10, Fashion-MNIST, Imagenette")
 
     # --- Load base splits from Hugging Face ---
-    loaded_dataset = datasets.load_dataset(hf_name, split=split_spec)
+    loaded_dataset = datasets.load_dataset(hf_name, split=split_spec, **extra_load_kwargs)
 
     # --- Create sampled DatasetDict ---
     dataset = datasets.DatasetDict({
@@ -96,7 +106,6 @@ def load_data_from_Huggingface():
                                         mode="bilinear", align_corners=False).squeeze(0)
                 out.append(img)
             return {"image": out, "label": batch["label"]}
-
         dataset = dataset.map(to_cifar_style_fashion, batched=True)
 
     # --- Class names ---
