@@ -352,7 +352,7 @@ if __name__ == "__main__":
     Dataset, num_classes, name_classes = MyDatasets.load_data_from_Huggingface()
     print("\n class names: \n", name_classes)
 
-'''
+    '''
     name_classes = [
         "T-shirt",
         "Trouser",
@@ -365,7 +365,7 @@ if __name__ == "__main__":
         "Bag",
         "Ankle boot"
     ]
-'''
+    '''
     # ===================== Data Distribution =====================
     distributed_dataset, num_samples = MyDatasets.data_distributing(Dataset, num_classes)
     print("\n ]data distribution of devices: \n", num_samples)
