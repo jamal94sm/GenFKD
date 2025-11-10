@@ -3,7 +3,7 @@ import argparse
 import torch
 
 
-
+'''
 # ===================== Argument Parsing =====================
 def get_args():
     parser = argparse.ArgumentParser(description="FedD2P")
@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--synth_path', type=str, default="/home/shahab33/projects/def-arashmoh/shahab33/GenFKD/Synthetic_Image/imagenette/")
 
     parser.add_argument('--num_clients', type=int, default= 7 + 1)
-    parser.add_argument('--local_model_name', type=str, default="ResNet18")
+    parser.add_argument('--local_model_name', type=str, default="LightweightCNN")
     parser.add_argument('--num_train_samples', type=int, default=8_000)
     parser.add_argument('--num_test_samples', type=int, default=1000)
     parser.add_argument('--dataset', type=str, default="imagenette")
@@ -53,14 +53,14 @@ def get_args():
     #parser.add_argument('--device',default="mps" if torch.backends.mps.is_available() else "cpu") # for runing on mps MAC OS
 
     parser.add_argument('--setup', default="local")
-    parser.add_argument('--output_name', type=str, default='imagenette')
-    parser.add_argument('--synth_path', type=str, default="/home/shahab33/projects/def-arashmoh/shahab33/GenFKD/Synthetic_Image/imagenette/")
+    parser.add_argument('--output_name', type=str, default='cifar10')
+    parser.add_argument('--synth_path', type=str, default="/home/shahab33/projects/def-arashmoh/shahab33/FedPD/Synthetic_Image/CIFAR10/")
 
     parser.add_argument('--num_clients', type=int, default= 2 + 1)
-    parser.add_argument('--local_model_name', type=str, default="ResNet18")
+    parser.add_argument('--local_model_name', type=str, default="LightweightCNN")
     parser.add_argument('--num_train_samples', type=int, default=150)
     parser.add_argument('--num_test_samples', type=int, default=50)
-    parser.add_argument('--dataset', type=str, default="imagenette")
+    parser.add_argument('--dataset', type=str, default="cifar10")
     parser.add_argument('--alpha_dirichlet', type=float, default=100) 
     parser.add_argument('--rounds', type=int, default=2)
     parser.add_argument('--num_synth_img_per_class', type=int, default=5)
@@ -84,6 +84,5 @@ def get_args():
 
 args = get_args()
 
-'''
 
 
