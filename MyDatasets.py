@@ -14,7 +14,7 @@ def shuffling(a, b):
     return np.random.randint(0, a, b)
 
 ##############################################################################################################
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset, DatasetDict, Dataset
 import datasets
 import torch
 import torch.nn.functional as F
@@ -38,18 +38,49 @@ def load_data_from_Huggingface():
         extra_load_kwargs = {}
     elif ds_key in ["imagenette"]:
         # Hugging Face: randall-lab/imagenette (train/test splits)
-        # Requires trust_remote_code=True because it uses a dataset script
+        # Requires trust_remote_code=True (dataset script). If offline, HF will use local cache if available.
         # Ref: HF dataset card
         hf_name = "randall-lab/imagenette"
         split_spec = ['train[:100%]', 'test[:100%]']
-        extra_load_kwargs = {"trust_remote_code": True}  # See dataset card
-        # https://huggingface.co/datasets/randall-lab/imagenette
+        extra_load_kwargs = {"trust_remote_code": True}  # https://huggingface.co/datasets/randall-lab/imagenette
     else:
         raise ValueError(f"Unsupported dataset: {args.dataset}. "
                          f"Use one of: MNIST, CIFAR10, Fashion-MNIST, Imagenette")
 
-    # --- Load base splits from Hugging Face ---
-    loaded_dataset = datasets.load_dataset(hf_name, split=split_spec, **extra_load_kwargs)
+    # --- Load base splits from Hugging Face (prefer offline reuse if envs set) ---
+    try:
+        loaded_dataset = datasets.load_dataset(
+            hf_name, split=split_spec, **extra_load_kwargs, download_mode="reuse_cache_if_exists"
+        )
+    except Exception as e_hf:
+        if ds_key != "imagenette":
+            # For non-Imagenette, just propagate the error
+            raise
+
+        # ------ OFFLINE/FAILURE FALLBACK: Torchvision Imagenette ------
+        # Converts Torchvision's (image, target) items into a HF DatasetDict with the same schema.
+        # Torchvision uses (train/val); we will map val -> test for consistency.
+        from torchvision.datasets import Imagenette as TVImagenette  # torchvision>=0.14
+        from PIL import Image
+
+        def tv_to_hf(split):
+            # split: 'train' or 'val'
+            tv = TVImagenette(root=getattr(args, "torchvision_root", "./.torchvision"),
+                              split=split, download=True)
+            # Build lists for HF Dataset
+            imgs, labels = [], []
+            for img, y in tv:
+                # Ensure PIL.Image (torchvision may return PIL by default)
+                if not isinstance(img, Image.Image):
+                    img = Image.fromarray(img)
+                imgs.append(img)
+                labels.append(int(y))
+            return Dataset.from_dict({"image": imgs, "label": labels},
+                                     features=datasets.Features({"image": datasets.Image(), "label": datasets.ClassLabel(num_classes=10)}))
+
+        train_hf = tv_to_hf("train")
+        test_hf  = tv_to_hf("val")  # Torchvision uses 'val'
+        loaded_dataset = [train_hf, test_hf]
 
     # --- Create sampled DatasetDict ---
     dataset = datasets.DatasetDict({
@@ -68,7 +99,7 @@ def load_data_from_Huggingface():
                 raise RuntimeError(f"Label column not found in {split} split.")
             dataset = dataset.rename_column(cand, "label")
 
-    # --- Base format (keep Python objects so transforms can return tensors)
+    # --- Keep python objects; we will return tensors from transforms
     dataset.set_format(type=None)
 
     # --- On-the-fly transforms (no blocking map/cache) ---
@@ -115,28 +146,33 @@ def load_data_from_Huggingface():
             dataset[split] = dataset[split].with_transform(_to_tensor_norm)
 
     # --- Class names ---
-    # Original features may expose synset IDs for Imagenette;
-    # Replace those with human-readable names.
-    name_classes = loaded_dataset[0].features["label"].names
+    # Start from whatever HF/tv gave us:
+    try:
+        name_classes = loaded_dataset[0].features["label"].names
+    except Exception:
+        # Torchvision fallback: define canonical Imagenette class list
+        name_classes = [
+            "tench", "English springer", "cassette player", "chain saw", "church",
+            "French horn", "garbage truck", "gas pump", "golf ball", "parachute"
+        ]
 
-    # Mapping: synset -> human-readable name (Imagenette)
-    # Sources: fastai Imagenette README / tutorials
-    synset_to_name = {
-        'n01440764': 'tench',
-        'n02102040': 'English springer',
-        'n02979186': 'cassette player',
-        'n03000684': 'chain saw',
-        'n03028079': 'church',
-        'n03394916': 'French horn',
-        'n03417042': 'garbage truck',
-        'n03425413': 'gas pump',
-        'n03445777': 'golf ball',
-        'n03888257': 'parachute',
-    }  # [1](https://github.com/fastai/imagenette)[2](https://docs.fast.ai/tutorial.imagenette.html)
-
-    # If the names look like synset IDs, map them to readable labels
-    if all(isinstance(n, str) and n.startswith('n') for n in name_classes):
-        name_classes = [synset_to_name.get(n, n) for n in name_classes]
+    # If this is Imagenette and names are synset IDs, map to readable labels
+    if ds_key == "imagenette":
+        synset_to_name = {
+            'n01440764': 'tench',
+            'n02102040': 'English springer',
+            'n02979186': 'cassette player',
+            'n03000684': 'chain saw',
+            'n03028079': 'church',
+            'n03394916': 'French horn',
+            'n03417042': 'garbage truck',
+            'n03425413': 'gas pump',
+            'n03445777': 'golf ball',
+            'n03888257': 'parachute',
+        }  # fastai Imagenette classes
+        # Only replace if all look like synsets
+        if all(isinstance(n, str) and n.startswith("n") for n in name_classes):
+            name_classes = [synset_to_name.get(n, n) for n in name_classes]
 
     return dataset, len(name_classes), name_classes
 
