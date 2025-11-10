@@ -603,3 +603,44 @@ class EfficientNet(nn.Module):
 
 ##############################################################################################################
 ##############################################################################################################
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class LightweightCNN(nn.Module):
+    def __init__(self, input_shape=(3, 32, 32), num_classes=10):
+        super(LightweightCNN, self).__init__()
+
+        # Lightweight CNN backbone
+        self.backbone = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # 16x16
+
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # 8x8
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))  # Output: [batch_size, 128, 1, 1]
+        )
+
+        # Determine feature dimension
+        feature_dim = 128
+
+        # Custom classifier
+        self.fc1 = nn.Linear(feature_dim, 512)
+        self.dropout = nn.Dropout(0.3)
+        self.fc2 = nn.Linear(512, num_classes)
+
+    def forward(self, x):
+        x = self.backbone(x)
+        x = x.view(x.size(0), -1)  # Flatten
+        x = F.relu(self.fc1(x))
+        x = self.dropout(x)
+        x = self.fc2(x)
+        return x
