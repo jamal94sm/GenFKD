@@ -204,7 +204,9 @@ class Device():
             self.model = MyModels.ResNet20(data["train"]["image"][0].shape, self.num_classes).to(args.device) #ResNet20
         elif args.local_model_name=="EfficientNet":
             self.model = MyModels.EfficientNet(data["train"]["image"][0].shape, self.num_classes).to(args.device) #EfficientNet
-
+        elif args.local_model_name=="LightweightCNN":
+            self.model = MyModels.LightweightCNN(data["train"]["image"][0].shape, self.num_classes).to(args.device) #EfficientNet
+            
         MyUtils.Model_Size(self.model)
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.local_learning_rate)
