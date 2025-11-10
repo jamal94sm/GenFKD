@@ -3,7 +3,7 @@ import argparse
 import torch
 
 
-'''
+
 # ===================== Argument Parsing =====================
 def get_args():
     parser = argparse.ArgumentParser(description="FedD2P")
@@ -12,7 +12,7 @@ def get_args():
     #parser.add_argument('--device',default="mps" if torch.backends.mps.is_available() else "cpu") # for runing on mps MAC OS
 
     parser.add_argument('--setup', default="local")
-    parser.add_argument('--output_name', type=str, default='_ResNet18_imagenette_10K_alpha100_')
+    parser.add_argument('--output_name', type=str, default='_ResNet18_imagenette_7K_alpha100_')
     parser.add_argument('--synth_path', type=str, default="/home/shahab33/projects/def-arashmoh/shahab33/GenFKD/Synthetic_Image/imagenette/")
 
     parser.add_argument('--num_clients', type=int, default= 7 + 1)
@@ -84,6 +84,6 @@ def get_args():
 
 args = get_args()
 
-
+'''
 
 
